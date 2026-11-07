@@ -31,8 +31,8 @@ button{font:inherit;color:inherit}
 
 /* ---------- PIN ---------- */
 #pin{position:fixed;inset:0;z-index:50;background:var(--blue);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom))}
-#pin .logo{background:#fff;border-radius:18px;padding:14px 22px;box-shadow:0 8px 28px rgba(0,0,0,.25)}
-#pin .logo img{height:40px;display:block}
+#pin .logo{display:flex;margin-bottom:6px}
+#pin .logo img{height:52px;display:block}
 #pin h2{margin:6px 0 0;font-size:20px;font-weight:650;letter-spacing:.01em}
 #pin p{margin:0;color:#c3d6ea;font-size:14px;min-height:20px;text-align:center}
 .dots{display:flex;gap:16px;margin:4px 0 6px}
@@ -48,8 +48,8 @@ button{font:inherit;color:inherit}
 
 /* ---------- topo ---------- */
 .topo{position:sticky;top:0;z-index:20;background:var(--blue);color:#fff;padding:calc(10px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));display:flex;align-items:center;justify-content:space-between;gap:12px}
-.topo .logo{background:#fff;border-radius:10px;padding:5px 10px;display:flex}
-.topo .logo img{height:24px;display:block}
+.topo .logo{display:flex}
+.topo .logo img{height:28px;display:block}
 .obra-btn{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);border-radius:99px;padding:8px 14px;font-weight:650;font-size:14px;max-width:62%;cursor:pointer}
 .obra-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .obra-btn svg{flex:none}
@@ -241,7 +241,7 @@ input:focus,textarea:focus{outline:2px solid var(--blue2);outline-offset:1px;bac
 </div>
 
 <script>
-var LOGO='logo.png';document.querySelectorAll('img.lg').forEach(function(i){i.src=LOGO});
+var LOGO='logo-branca.png';document.querySelectorAll('img.lg').forEach(function(i){i.src=LOGO});
 var FUNCOES=['Servente','Pedreiro','Operador de máquina','Calceteiro','Engenheiro','Pintor','Eletricista','Carpinteiro'];
 var CLIMAS=[['Sol','☀️'],['Nublado','⛅'],['Chuva fraca','🌦️'],['Chuva forte','🌧️'],['Instável','⛈️']];
 var LAMBARI=[-21.9686,-45.3528];
