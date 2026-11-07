@@ -315,17 +315,35 @@ var digitos='';
     else if(e.key==='Backspace'){digitos=digitos.slice(0,-1);pintaDots()}});
 })();
 function pintaDots(){document.querySelectorAll('#dots i').forEach(function(d,i){d.classList.toggle('on',i<digitos.length)})}
+async function hashPin(pin){
+  try{var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('lucarelli:'+pin));
+    return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(e){return 'p:'+pin}
+}
+function abreRapido(pin){E.pin=pin;E.obras=le('luc_obras',[]);$('#pin').hidden=true;$('#app').hidden=false;abrirApp()}
+function pinRecusado(msg){
+  apaga('luc_pin');apaga('luc_pinh');digitos='';pintaDots();
+  $('#pin').hidden=false;$('#app').hidden=true;
+  var d=$('#dots');d.classList.remove('erro');void d.offsetWidth;d.classList.add('erro');vibra([30,40,30]);$('#pinmsg').textContent=msg}
 async function entrar(pin,silencioso){
+  /* Entrada instantânea: se já entrou antes neste aparelho, abre na hora e confere com o servidor em segundo plano */
+  var cache=le('luc_obras',[]),h=await hashPin(pin),conhecido=silencioso||(le('luc_pinh','')===h);
+  if(conhecido&&cache.length){
+    abreRapido(pin);
+    comTentativas('f_entrar',{pin:pin},2).then(function(r){
+      E.obras=r.obras||[];guarda('luc_obras',E.obras);guarda('luc_pin',pin);guarda('luc_pinh',h);
+      try{pintaObra()}catch(x){}
+    }).catch(function(e){if(/PIN/i.test(e.message))pinRecusado('O PIN mudou. Digite o novo PIN.')});
+    return;
+  }
   $('#pinmsg').textContent='Entrando...';
   try{
     var r=await comTentativas('f_entrar',{pin:pin},2);
-    E.pin=pin;guarda('luc_pin',pin);E.obras=r.obras||[];guarda('luc_obras',E.obras);
+    E.pin=pin;guarda('luc_pin',pin);guarda('luc_pinh',h);E.obras=r.obras||[];guarda('luc_obras',E.obras);
     try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(x){}
     $('#pin').hidden=true;$('#app').hidden=false;abrirApp();
   }catch(e){
     digitos='';pintaDots();
-    if(/PIN/i.test(e.message)){apaga('luc_pin');var d=$('#dots');d.classList.remove('erro');void d.offsetWidth;d.classList.add('erro');vibra([30,40,30]);$('#pinmsg').textContent=e.message}
-    else if(silencioso&&e.semNet&&le('luc_obras',[]).length){E.pin=pin;E.obras=le('luc_obras',[]);$('#pin').hidden=true;$('#app').hidden=false;abrirApp();return}
+    if(/PIN/i.test(e.message)){apaga('luc_pin');apaga('luc_pinh');var d=$('#dots');d.classList.remove('erro');void d.offsetWidth;d.classList.add('erro');vibra([30,40,30]);$('#pinmsg').textContent=e.message}
     else if(silencioso){$('#pinmsg').textContent='Sem conexão. Digite o PIN para tentar de novo.'}
     else $('#pinmsg').textContent='Não consegui entrar: '+e.message;
     $('#pin').hidden=false;$('#app').hidden=true;
