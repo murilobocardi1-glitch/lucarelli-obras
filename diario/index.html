@@ -56,6 +56,8 @@ button{font:inherit;color:inherit}
 .pend{display:block;width:100%;border:0;background:var(--amber);color:#2a1700;font-weight:700;font-size:14px;padding:8px;cursor:pointer}
 .instala{display:flex;gap:10px;align-items:center;background:var(--blue-lt);color:var(--ink);font-size:14px;padding:10px max(16px,env(safe-area-inset-left));border-bottom:1px solid var(--line)}
 .instala span{flex:1}.instala button{border:0;background:none;font-size:24px;color:var(--muted);cursor:pointer}
+.msg.edit{background:var(--blue-lt);color:var(--ink);border:1px solid var(--line)}
+#listaEnv .op small{white-space:normal}
 .offline{background:#7a4b00;color:#fff;text-align:center;font-size:13px;padding:6px}
 
 .wrap{max-width:560px;margin:0 auto;padding:16px max(16px,env(safe-area-inset-right)) calc(120px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
@@ -170,6 +172,8 @@ input:focus,textarea:focus{outline:2px solid var(--blue2);outline-offset:1px;bac
   <div class="wrap">
     <h1>Novo Diário de Obra</h1>
     <p class="sub">O que você enviar aqui chega sozinho no programa do computador.</p>
+    <button class="link" id="verEnv" type="button" hidden>Dias já enviados (ver e corrigir)</button>
+    <div class="msg edit" id="edBanner" hidden><span id="edTxt"></span> <button class="link" id="edCancela" type="button">Cancelar correção</button></div>
     <div class="msg" id="erro" hidden role="alert"></div>
 
     <div class="card">
@@ -229,6 +233,11 @@ input:focus,textarea:focus{outline:2px solid var(--blue2);outline-offset:1px;bac
   <div class="al"></div><h4>Em qual obra?</h4>
   <div id="listaObras"></div>
   <button class="link" id="sair" type="button">Sair deste aparelho (pedir o PIN de novo)</button>
+</div>
+
+<div class="folha" id="fEnv" hidden role="dialog" aria-label="Dias já enviados">
+  <div class="al"></div><h4>Dias já enviados</h4>
+  <div id="listaEnv"></div>
 </div>
 
 <!-- sucesso -->
@@ -299,6 +308,27 @@ function filaDel(id){return tx('readwrite',function(s){return s.delete(id)})}
 function filaTodos(){return tx('readonly',function(s){return s.getAll()}).then(function(l){return l||[]})}
 var memFila=[]; /* se o IndexedDB não funcionar, ao menos fica na memória */
 async function filaLista(){try{return await filaTodos()}catch(e){return memFila}}
+
+/* histórico dos dias enviados (só neste aparelho): permite corrigir um dia já enviado */
+function stem(a){return String(a).replace(/\.jpg$/,'')}
+function histLe(){return le('luc_hist',[])}
+function histGet(id){return histLe().filter(function(h){return h.id===id})[0]||null}
+function histPut(it){
+  var th=le('luc_thumbs',{}),h=histLe().filter(function(x){return x.id!==it.id});
+  it.fotos.forEach(function(f){if(f.thumb)th[f.id]=f.thumb});
+  h.unshift({id:it.id,obra:it.obra,data:it.dia.data,clima:it.dia.clima,equipe:it.dia.equipe,servicos:it.dia.servicos,ocorrencias:it.dia.ocorrencias,
+    fotos:it.dia.fotos,quando:Date.now()});
+  h=h.slice(0,60);
+  var uso={};h.forEach(function(x){x.fotos.forEach(function(f){uso[stem(f.arquivo)]=1})});
+  Object.keys(th).forEach(function(k){if(!uso[k])delete th[k]});
+  guarda('luc_hist',h);guarda('luc_thumbs',th);
+}
+function miniatura(blob){
+  if(!window.createImageBitmap)return Promise.resolve('');
+  return createImageBitmap(blob).then(function(bm){
+    var e=Math.min(1,150/Math.max(bm.width,bm.height)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(bm.width*e));c.height=Math.max(1,Math.round(bm.height*e));
+    c.getContext('2d').drawImage(bm,0,0,c.width,c.height);try{bm.close()}catch(x){}
+    return c.toDataURL('image/jpeg',0.6)}).catch(function(){return ''})}
 
 /* ---------------- PIN ---------------- */
 var digitos='';
@@ -434,7 +464,7 @@ function pintaFotos(){
     if(f.url)d.querySelector('img').src=f.url;
     var tg=d.querySelector('.tag');if(f.estado==='prep'){tg.hidden=false;tg.className='tag';tg.textContent='Preparando...'}else if(f.estado==='ok'){tg.hidden=false;tg.className='tag ok';tg.textContent='✓'}else if(f.estado==='er'){tg.hidden=false;tg.className='tag er';tg.textContent='Falhou'}else if(f.estado==='env'){tg.hidden=false;tg.className='tag';tg.textContent='...'}
     var inp=d.querySelector('input');inp.value=f.legenda;inp.oninput=function(){f.legenda=inp.value};
-    d.querySelector('.x').onclick=function(){if(E.enviando)return;URL.revokeObjectURL(f.url);E.fotos.splice(i,1);pintaFotos()};
+    d.querySelector('.x').onclick=function(){if(E.enviando)return;if(!f.existente)URL.revokeObjectURL(f.url);E.fotos.splice(i,1);pintaFotos()};
     box.appendChild(d)})}
 async function addArquivos(lista){
   lista=[].slice.call(lista);
@@ -444,7 +474,7 @@ async function addArquivos(lista){
   async function trabalha(){
     while(prox<lista.length){
       var i=prox++,it=itens[i];
-      try{var b=await reduzir(lista[i]);it.blob=b;it.url=URL.createObjectURL(b);it.estado=''}
+      try{var b=await reduzir(lista[i]);it.blob=b;it.url=URL.createObjectURL(b);it.estado='';it.thumb=await miniatura(b)}
       catch(e){erro(e.message);var k=E.fotos.indexOf(it);if(k>=0)E.fotos.splice(k,1)}
       pintaFotos()}}
   await Promise.all([trabalha(),trabalha(),trabalha()]);
@@ -467,6 +497,7 @@ function cresce(el){el.style.height='auto';if(el.offsetHeight>0)el.style.height=
 
 /* obra */
 function pintaObra(){
+  try{pintaVerEnv()}catch(x){}
   var o=E.obras.filter(function(x){return x.id===E.obra})[0];
   $('#obraNome').textContent=o?o.nome:'Escolha a obra';
   var ult=le('luc_ult_'+E.obra,null);
@@ -477,7 +508,7 @@ function abreFolha(){
   $('#listaObras').innerHTML=h;$('#fFundo').hidden=false;$('#folha').hidden=false}
 function fechaFolha(){$('#fFundo').hidden=true;$('#folha').hidden=true}
 function esc(t){return String(t).replace(/[<&>"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]})}
-$('#obraBtn').onclick=abreFolha;$('#fFundo').onclick=fechaFolha;
+$('#obraBtn').onclick=abreFolha;$('#fFundo').onclick=function(){fechaFolha();fechaEnv()};
 $('#listaObras').onclick=function(e){var b=e.target.closest('.op');if(!b)return;E.obra=b.dataset.o;guarda('luc_obra',E.obra);pintaObra();fechaFolha();salvaRascunho()};
 $('#sair').onclick=function(){apaga('luc_pin');apaga('luc_rasc');location.reload()};
 
@@ -501,7 +532,7 @@ $('#enviar').onclick=async function(){
   if(!E.diaId){E.diaId=rid(12)}
   var dia={id:E.diaId,data:E.data,clima:E.clima,equipe:equipeTexto(),servicos:servicos,ocorrencias:$('#ocorr').value.trim(),avanco:'',
     fotos:E.fotos.map(function(f){return {arquivo:f.id+'.jpg',legenda:f.legenda.trim()}})};
-  var item={id:E.diaId,obra:E.obra,dia:dia,criado:Date.now(),fotos:E.fotos.map(function(f){return {id:f.id,blob:f.blob,enviada:f.estado==='ok'}})};
+  var item={id:E.diaId,obra:E.obra,dia:dia,criado:Date.now(),fotos:E.fotos.map(function(f){return {id:f.id,blob:f.blob,enviada:f.estado==='ok',thumb:f.existente?(f.url||''):(f.thumb||'')}})};
   E.enviando=true;var btn=$('#enviar');btn.disabled=true;$('#enviarTxt').textContent='Enviando...';$('#prog').style.width='4%';
   try{
     try{await filaPut(item)}catch(e){memFila=memFila.filter(function(x){return x.id!==item.id});memFila.push(item)}
@@ -537,6 +568,7 @@ async function descarrega(comBarra){
         if(falha)throw falha;
         await api('f_dia',{pin:E.pin,obra:it.obra,dia:it.dia}); /* por último: o programa nunca lê um dia sem as fotos */
         feito++;
+        try{histPut(it);pintaVerEnv()}catch(x){}
         try{await filaDel(it.id)}catch(x){}
         memFila=memFila.filter(function(x){return x.id!==it.id});
       }catch(e){
@@ -557,15 +589,41 @@ document.addEventListener('visibilitychange',function(){if(!document.hidden)tent
 setInterval(tentaFila,25000);
 function sucesso(dia,n,enviado){
   var data=dia.data.split('-').reverse().join('/');
-  $('#okTit').textContent=enviado?'Enviado!':'Guardado!';
+  var corrigiu=E.editando;saiEdicao();
+  $('#okTit').textContent=enviado?(corrigiu?'Corrigido!':'Enviado!'):'Guardado!';
   $('#okTxt').textContent=enviado
     ?'O dia '+data+(n?' foi com '+n+' foto'+(n>1?'s':''):'')+' já está a caminho do programa no computador.'
     :'Sem sinal agora. O dia '+data+' ficou guardado no celular e sobe sozinho quando a internet voltar. Abra o app de novo quando estiver com sinal.';
   $('#ok').hidden=false;vibra(40);
   apaga('luc_rasc');
-  E.fotos.forEach(function(f){URL.revokeObjectURL(f.url)});E.fotos=[];E.diaId='';
+  E.fotos.forEach(function(f){if(!f.existente)URL.revokeObjectURL(f.url)});E.fotos=[];E.diaId='';
   pintaFotos();
 }
+function saiEdicao(){E.editando=false;$('#edBanner').hidden=true;$('#enviarTxt').textContent='Enviar Diário'}
+function fotosDeHist(h){var th=le('luc_thumbs',{});return h.fotos.map(function(f){var id=stem(f.arquivo);return {id:id,blob:null,legenda:f.legenda||'',url:th[id]||'',estado:'ok',existente:true}})}
+function entraEdicao(h){
+  E.editando=true;E.diaId=h.id;
+  $('#edTxt').textContent='Corrigindo o dia '+h.data.split('-').reverse().join('/')+', que já foi enviado. Ao enviar, o programa atualiza esse dia.';
+  $('#edBanner').hidden=false;$('#enviarTxt').textContent='Enviar correção';
+}
+function abreEdicao(h){
+  E.obra=h.obra;guarda('luc_obra',E.obra);pintaObra();
+  E.data=h.data;pintaData();E.clima=h.clima||'Sol';E.climaManual=true;$('#climaAuto').hidden=true;pintaClima();
+  equipeCarrega(h.equipe);$('#servicos').value=h.servicos||'';$('#ocorr').value=h.ocorrencias||'';cresce($('#servicos'));cresce($('#ocorr'));
+  E.fotos=fotosDeHist(h);pintaFotos();entraEdicao(h);salvaRascunho();fechaEnv();window.scrollTo({top:0,behavior:'smooth'});
+}
+function fechaEnv(){$('#fEnv').hidden=true;$('#fFundo').hidden=true}
+function pintaVerEnv(){$('#verEnv').hidden=!histLe().some(function(h){return h.obra===E.obra})}
+$('#verEnv').onclick=function(){
+  var l=histLe().filter(function(h){return h.obra===E.obra}).sort(function(a,b){return a.data<b.data?1:a.data>b.data?-1:b.quando-a.quando});
+  var sem=['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+  $('#listaEnv').innerHTML=l.map(function(h){var d=deISO(h.data),n=h.fotos.length,t=(h.servicos||'').replace(/\s+/g,' ').slice(0,70);
+    return '<button type="button" class="op" data-i="'+esc(h.id)+'"><span>'+h.data.split('-').reverse().join('/')+' · '+sem[d.getDay()]+(n?' · '+n+' foto'+(n>1?'s':''):'')+'</span><small>'+esc(t||'Sem texto de serviços')+'</small></button>'}).join('')||'<p class="sub">Nenhum dia enviado deste aparelho ainda.</p>';
+  $('#fFundo').hidden=false;$('#fEnv').hidden=false};
+$('#listaEnv').onclick=function(e){var b=e.target.closest('.op');if(!b)return;var h=histGet(b.dataset.i);if(!h)return;
+  if(E.fotos.length||$('#servicos').value.trim()){if(!confirm('Trocar o que você está escrevendo pela correção deste dia?'))return}
+  abreEdicao(h)};
+$('#edCancela').onclick=function(){E.fotos.forEach(function(f){if(!f.existente)URL.revokeObjectURL(f.url)});E.fotos=[];E.diaId='';saiEdicao();limpaFormulario();pintaFotos();apaga('luc_rasc');window.scrollTo(0,0)};
 function limpaFormulario(){
   $('#servicos').value='';$('#ocorr').value='';$('#eqOutra').value='';E.qtd={};pintaEquipe();cresce($('#servicos'));cresce($('#ocorr'));$('#rasc').textContent='';
 }
@@ -588,7 +646,8 @@ function abrirApp(){
   E.clima=(r&&r.clima)||'Sol';E.climaManual=!!(r&&r.climaManual);
   pintaData();pintaClima();E.qtd=(r&&r.qtd)||{};pintaEquipe();
   $('#eqOutra').value=(r&&r.outra)||'';$('#servicos').value=(r&&r.servicos)||'';$('#ocorr').value=(r&&r.ocorr)||'';
-  cresce($('#servicos'));cresce($('#ocorr'));pintaObra();pintaFotos();
+  var hr=E.diaId&&histGet(E.diaId);if(hr&&hr.obra===E.obra){E.fotos=fotosDeHist(hr);entraEdicao(hr)}
+  cresce($('#servicos'));cresce($('#ocorr'));pintaObra();pintaFotos();pintaVerEnv();
   if(!E.climaManual)buscaClima();
   if(!E.obra&&E.obras.length>1)setTimeout(abreFolha,350);
 }
