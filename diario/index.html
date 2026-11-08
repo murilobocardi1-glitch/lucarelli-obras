@@ -598,11 +598,14 @@ function aba(g){
 $('#aDia').onclick=function(){aba(false)};$('#aGasto').onclick=function(){aba(true)};
 function gErro(t){var m=$('#gErro');if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false;vibra([30,40,30]);window.scrollTo({top:0,behavior:'smooth'})}
 function valorNum(t){t=String(t).replace(/[^0-9,.\-]/g,'');if(t.indexOf(',')>=0)t=t.replace(/\./g,'').replace(',','.');else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,'');return parseFloat(t)}
-/* valor: ao sair do campo entra o ,00 sozinho (e o ponto de milhar); ao voltar, sai o ,00 para continuar digitando */
+/* valor estilo caixa eletrônico: os números entram da direita (20050 vira 200,50); a vírgula e o ponto são automáticos */
 (function(){var el=$('#gValor');
-  el.addEventListener('blur',function(){var n=valorNum(el.value);if(el.value.trim()&&n>0)el.value=n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})});
-  el.addEventListener('focus',function(){el.value=el.value.replace(/\.(?=\d{3}(\D|$))/g,'').replace(/,00$/,'')});
-  el.addEventListener('input',function(){var t=el.value.replace(/[^0-9,]/g,'').replace(/,(?=.*,)/g,'');t=t.replace(/,(\d{2})\d+/,',$1');if(t!==el.value)el.value=t});
+  function mascara(){var d=el.value.replace(/\D/g,'').replace(/^0+/,'').slice(0,11);
+    if(!d){el.value='';return}
+    while(d.length<3)d='0'+d;
+    var c=d.slice(-2),r=d.slice(0,-2).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
+    el.value=r+','+c}
+  el.addEventListener('input',mascara);
 })();
 $('#gEnviar').onclick=async function(){
   if(E.enviando)return;gErro('');
