@@ -390,7 +390,7 @@ function rotuloData(t){
 function pintaData(){var r=rotuloData(E.data);$('#dtTxt').textContent=r.titulo;$('#dtSub').textContent=r.sub;$('#data').value=E.data}
 function mudaData(t,limpaClima){
   E.data=t;pintaData();
-  if(limpaClima!==false){E.climaManual=false;buscaClima()}
+  if(limpaClima!==false){E.climaManual=false;E.climaOk=false;buscaClima()}
   salvaRascunho();
 }
 function pintaClima(){
@@ -412,9 +412,9 @@ async function buscaClima(){
     var r=await fetch(u,{signal:ctl.signal});clearTimeout(t);var j=await r.json();
     if(alvo!==E.data||E.climaManual)return;
     var cod=j.daily.weathercode[0],mm=j.daily.precipitation_sum[0];if(cod==null)return;
-    E.clima=classifica(cod,mm);pintaClima();
+    E.clima=classifica(cod,mm);E.climaOk=true;pintaClima();
     var a=$('#climaAuto');a.textContent='Preenchido pela previsão de Lambari'+(mm?' ('+(+mm).toFixed(1).replace('.',',')+' mm de chuva)':'')+'. Toque para trocar.';a.hidden=false;
-  }catch(e){}
+  }catch(e){if(alvo===E.data&&!E.climaManual){var a=$('#climaAuto');a.textContent='Sem sinal: o clima será preenchido sozinho quando o programa conectar. Se preferir, toque no tempo.';a.hidden=false}}
 }
 
 function pintaEquipe(){
@@ -528,7 +528,7 @@ $('#enviar').onclick=async function(){
   if(!servicos&&!E.fotos.length)return erro('Escreva os serviços executados ou adicione fotos.');
   if(E.fotos.some(function(f){return f.estado==='prep'}))return erro('Aguarde as fotos terminarem de carregar.');
   if(!E.diaId){E.diaId=rid(12)}
-  var dia={id:E.diaId,data:E.data,clima:E.clima,equipe:equipeTexto(),servicos:servicos,ocorrencias:$('#ocorr').value.trim(),avanco:'',
+  var dia={id:E.diaId,data:E.data,clima:(E.climaManual||E.climaOk)?E.clima:'',equipe:equipeTexto(),servicos:servicos,ocorrencias:$('#ocorr').value.trim(),avanco:'',
     fotos:E.fotos.map(function(f){return {arquivo:f.id+'.jpg',legenda:f.legenda.trim()}})};
   var item={id:E.diaId,obra:E.obra,dia:dia,criado:Date.now(),fotos:E.fotos.map(function(f){return {id:f.id,blob:f.blob,enviada:f.estado==='ok'}})};
   E.enviando=true;var btn=$('#enviar');btn.disabled=true;$('#enviarTxt').textContent='Enviando...';$('#prog').style.width='4%';
