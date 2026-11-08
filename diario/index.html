@@ -323,14 +323,14 @@ function histPut(it){
   Object.keys(th).forEach(function(k){if(!uso[k])delete th[k]});
   guarda('luc_hist',h);guarda('luc_thumbs',th);
 }
-/* o programa do computador apagou um dia: tira da lista do celular (só dias com mais de 20 min, para não sumir um recém-enviado) */
+/* o programa do computador apagou um dia: tira da lista do celular (só dias com mais de 3 min, para não sumir um recém-enviado) */
 function sincHist(obras){
   try{
     var h=histLe(),antes=h.length;
     h=h.filter(function(x){
       var o=(obras||[]).filter(function(y){return y.id===x.obra})[0];
       if(!o||!Array.isArray(o.dias))return true;
-      return o.dias.indexOf(x.id)>=0||(Date.now()-(x.quando||0))<20*60000});
+      return o.dias.indexOf(x.id)>=0||(Date.now()-(x.quando||0))<3*60000});
     if(h.length!==antes){guarda('luc_hist',h);pintaVerEnv();if(!$('#fEnv').hidden)fechaEnv()}
   }catch(x){}
 }
