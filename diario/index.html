@@ -133,6 +133,16 @@ input:focus,textarea:focus{outline:2px solid var(--blue2);outline-offset:1px;bac
 .op small{font-weight:500;color:var(--muted)}
 .op.on{border-color:var(--blue2);background:var(--blue-lt)}
 
+/* abas e gasto */
+.abas{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--blue-lt);border-radius:14px;padding:4px;margin:2px 0 14px}
+.abas button{border:0;background:none;border-radius:11px;padding:11px 8px;font-weight:700;font-size:15px;color:var(--blue2);cursor:pointer}
+.abas button.on{background:var(--card);color:var(--blue);box-shadow:var(--shadow)}
+.campo{display:block;margin-bottom:12px}
+.campo>span{display:block;font-size:13px;font-weight:650;color:var(--muted);margin-bottom:5px}
+select{width:100%;font:inherit;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg);color:var(--ink)}
+input[type=date]{font:inherit;font-size:16px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--bg);color:var(--ink);width:100%}
+#gValor{font-size:26px;font-weight:800}
+
 /* sucesso */
 #ok{position:fixed;inset:0;z-index:60;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center}
 #ok .check{width:104px;height:104px;border-radius:50%;background:var(--ok-bg);display:flex;align-items:center;justify-content:center;animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
@@ -168,6 +178,8 @@ input:focus,textarea:focus{outline:2px solid var(--blue2);outline-offset:1px;bac
   <div class="instala" id="instala" hidden><b>Instale como app</b><span>No Safari, toque em <b>Compartilhar</b> <span class="ic">&#x2B06;&#xFE0E;</span> e depois em <b>Adicionar à Tela de Início</b>.</span><button type="button" id="fechaInst" aria-label="Fechar">&times;</button></div>
 
   <div class="wrap">
+    <div class="abas"><button type="button" id="aDia" class="on">Diário</button><button type="button" id="aGasto">Gasto</button></div>
+    <div id="vDia">
     <h1>Novo Diário de Obra</h1>
     <p class="sub">O que você enviar aqui chega sozinho no programa do computador.</p>
     <div class="msg" id="erro" hidden role="alert"></div>
@@ -215,10 +227,27 @@ input:focus,textarea:focus{outline:2px solid var(--blue2);outline-offset:1px;bac
       <input type="file" id="arqGal" accept="image/*" multiple hidden>
       <div class="fotos" id="fotos"></div>
     </div>
+    </div>
+    <div id="vGasto" hidden>
+      <h1>Novo Gasto</h1>
+      <p class="sub">O gasto chega sozinho na lista de custos da obra, no programa do computador.</p>
+      <div class="msg" id="gErro" hidden role="alert"></div>
+      <div class="card">
+        <label class="campo"><span>Valor (R$)</span><input type="text" id="gValor" inputmode="decimal" placeholder="0,00" autocomplete="off"></label>
+        <label class="campo"><span>Descrição</span><input type="text" id="gDesc" placeholder="Ex.: 10 sacos de cimento" maxlength="300" autocomplete="off"></label>
+        <label class="campo"><span>Fornecedor</span><input type="text" id="gForn" placeholder="Quem recebeu (opcional)" maxlength="200" autocomplete="off"></label>
+        <label class="campo"><span>Categoria</span><select id="gCat"></select></label>
+        <label class="campo" id="gUnW" hidden><span>Casa</span><select id="gUn"></select></label>
+        <label class="campo" id="gItW" hidden><span>Item do orçamento</span><select id="gIt"></select></label>
+        <label class="campo"><span>Data</span><input type="date" id="gData"></label>
+        <label class="campo"><span>Observação</span><input type="text" id="gObs" placeholder="Opcional" maxlength="500" autocomplete="off"></label>
+      </div>
+    </div>
   </div>
 
   <div class="envio"><div class="in">
     <button class="enviar" id="enviar" type="button"><span class="prog" id="prog"></span><b id="enviarTxt">Enviar Diário</b></button>
+    <button class="enviar" id="gEnviar" type="button" hidden><b id="gEnviarTxt">Enviar Gasto</b></button>
     <div class="rasc" id="rasc"></div>
   </div></div>
 </div>
@@ -478,7 +507,7 @@ function abreFolha(){
 function fechaFolha(){$('#fFundo').hidden=true;$('#folha').hidden=true}
 function esc(t){return String(t).replace(/[<&>"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]})}
 $('#obraBtn').onclick=abreFolha;$('#fFundo').onclick=fechaFolha;
-$('#listaObras').onclick=function(e){var b=e.target.closest('.op');if(!b)return;E.obra=b.dataset.o;guarda('luc_obra',E.obra);pintaObra();fechaFolha();salvaRascunho()};
+$('#listaObras').onclick=function(e){var b=e.target.closest('.op');if(!b)return;E.obra=b.dataset.o;guarda('luc_obra',E.obra);pintaObra();fechaFolha();salvaRascunho();if(!$('#vGasto').hidden)pintaGasto()};
 $('#sair').onclick=function(){apaga('luc_pin');apaga('luc_rasc');location.reload()};
 
 $('#repEq').onclick=function(){var u=le('luc_ult_'+E.obra,null);if(u){equipeCarrega(u.equipe);salvaRascunho();vibra(8)}};
@@ -523,6 +552,7 @@ async function descarrega(comBarra){
     for(var k=0;k<fila.length;k++){
       var it=fila[k];
       try{
+        if(it.gasto){await api('f_gasto',{pin:E.pin,obra:it.obra,gasto:it.gasto});feito++;try{await filaDel(it.id)}catch(x){}memFila=memFila.filter(function(x){return x.id!==it.id});continue}
         var faltam=it.fotos.filter(function(f){return !f.enviada}),prox=0,falha=null;
         async function sobe(){ /* 3 fotos ao mesmo tempo: o tempo de espera do Google é dividido */
           while(prox<faltam.length&&!falha){
@@ -549,7 +579,54 @@ async function descarrega(comBarra){
   var resto=(await filaLista()).length;pintaPend(resto);
   return {pendentes:resto,pinErrado:pinErrado};
 }
-function pintaPend(n){var b=$('#pend');if(!b)return;b.hidden=!n;b.textContent=n+(n>1?' dias':' dia')+' esperando envio'}
+var CATS=['Material','Mão de obra','Equipamento / aluguel','Transporte / frete','Combustível','Projeto / taxas / ART','Alimentação','Outros'];
+function opcoes(sel,lista,vazio){sel.innerHTML=(vazio!=null?'<option value="">'+esc(vazio)+'</option>':'')+lista.map(function(x){return '<option>'+esc(x)+'</option>'}).join('')}
+function pintaGasto(){
+  var o=E.obras.filter(function(x){return x.id===E.obra})[0]||{};
+  opcoes($('#gCat'),CATS);
+  var un=o.unidades||[],it=o.itens||[];
+  $('#gUnW').hidden=!un.length;$('#gItW').hidden=!it.length;
+  opcoes($('#gUn'),un,'Geral');opcoes($('#gIt'),it,'Nenhum');
+  if(!$('#gData').value)$('#gData').value=iso(new Date());
+}
+function aba(g){
+  $('#vDia').hidden=g;$('#vGasto').hidden=!g;
+  $('#enviar').hidden=g;$('#gEnviar').hidden=!g;
+  $('#aDia').classList.toggle('on',!g);$('#aGasto').classList.toggle('on',g);
+  if(g)pintaGasto();window.scrollTo(0,0);
+}
+$('#aDia').onclick=function(){aba(false)};$('#aGasto').onclick=function(){aba(true)};
+function gErro(t){var m=$('#gErro');if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false;vibra([30,40,30]);window.scrollTo({top:0,behavior:'smooth'})}
+function valorNum(t){t=String(t).replace(/[^0-9,.\-]/g,'');if(t.indexOf(',')>=0)t=t.replace(/\./g,'').replace(',','.');else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,'');return parseFloat(t)}
+$('#gEnviar').onclick=async function(){
+  if(E.enviando)return;gErro('');
+  if(!E.obra){abreFolha();return gErro('Escolha a obra.')}
+  var v=valorNum($('#gValor').value);
+  if(!(v>0))return gErro('Informe o valor do gasto.');
+  var desc=$('#gDesc').value.trim();
+  if(!desc)return gErro('Escreva a descrição do gasto.');
+  if(!$('#gData').value)return gErro('Informe a data.');
+  var g={id:rid(12),data:$('#gData').value,valor:Math.round(v*100)/100,descricao:desc,fornecedor:$('#gForn').value.trim(),
+    categoria:$('#gCat').value,unidade:$('#gUn').value,item:$('#gIt').value,obs:$('#gObs').value.trim()};
+  var item={id:g.id,obra:E.obra,gasto:g,criado:Date.now(),fotos:[]};
+  E.enviando=true;var btn=$('#gEnviar');btn.disabled=true;$('#gEnviarTxt').textContent='Enviando...';
+  try{
+    try{await filaPut(item)}catch(e){memFila=memFila.filter(function(x){return x.id!==item.id});memFila.push(item)}
+    var res=await descarrega(false);
+    if(res&&res.pinErrado){gErro('O PIN mudou. Digite o novo PIN.');apaga('luc_pin');return}
+    sucessoGasto(g,res&&res.pendentes===0);
+  }catch(e){gErro('Não consegui guardar o gasto: '+e.message)}
+  finally{E.enviando=false;btn.disabled=false;$('#gEnviarTxt').textContent='Enviar Gasto'}
+};
+function sucessoGasto(g,enviado){
+  var v=g.valor.toFixed(2).replace('.',',');
+  $('#okTit').textContent=enviado?'Enviado!':'Guardado!';
+  $('#okTxt').textContent=enviado?'Gasto de R$ '+v+' já está a caminho do programa no computador.':'Sem sinal agora. O gasto de R$ '+v+' ficou guardado no celular e sobe sozinho quando a internet voltar.';
+  E.okGasto=true;$('#novoDia').textContent='Lançar outro gasto';$('#mesmoDia').textContent='Voltar';
+  $('#ok').hidden=false;vibra(40);
+  ['#gValor','#gDesc','#gForn','#gObs'].forEach(function(s){$(s).value=''});
+}
+function pintaPend(n){var b=$('#pend');if(!b)return;b.hidden=!n;b.textContent=n+(n>1?' itens':' item')+' esperando envio'}
 $('#pend').onclick=function(){descarrega(false)};
 function tentaFila(){if(E.pin&&navigator.onLine)descarrega(false)}
 addEventListener('online',tentaFila);
@@ -569,8 +646,8 @@ function sucesso(dia,n,enviado){
 function limpaFormulario(){
   $('#servicos').value='';$('#ocorr').value='';$('#eqOutra').value='';E.qtd={};pintaEquipe();cresce($('#servicos'));cresce($('#ocorr'));$('#rasc').textContent='';
 }
-$('#novoDia').onclick=function(){$('#ok').hidden=true;limpaFormulario();var d=deISO(E.data);d.setDate(d.getDate()+1);var hoje=iso(new Date());mudaData(iso(d)>hoje?hoje:iso(d));window.scrollTo(0,0)};
-$('#mesmoDia').onclick=function(){$('#ok').hidden=true;limpaFormulario();window.scrollTo(0,0)};
+$('#novoDia').onclick=function(){if(E.okGasto){E.okGasto=false;$('#ok').hidden=true;$('#novoDia').textContent='Lançar outro dia';$('#mesmoDia').textContent='Voltar ao diário';window.scrollTo(0,0);return}$('#ok').hidden=true;limpaFormulario();var d=deISO(E.data);d.setDate(d.getDate()+1);var hoje=iso(new Date());mudaData(iso(d)>hoje?hoje:iso(d));window.scrollTo(0,0)};
+$('#mesmoDia').onclick=function(){if(E.okGasto){E.okGasto=false;$('#novoDia').textContent='Lançar outro dia';$('#mesmoDia').textContent='Voltar ao diário';$('#ok').hidden=true;aba(false);return}$('#ok').hidden=true;limpaFormulario();window.scrollTo(0,0)};
 
 addEventListener('online',function(){$('#off').hidden=true});
 addEventListener('offline',function(){$('#off').hidden=false});
