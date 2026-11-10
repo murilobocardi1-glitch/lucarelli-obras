@@ -586,13 +586,15 @@ async function descarrega(comBarra){
         try{await filaDel(it.id)}catch(x){}
         memFila=memFila.filter(function(x){return x.id!==it.id});
       }catch(e){
-        if(/PIN|tentativas/i.test(e.message)){pinErrado=true}
-        break; /* sem sinal ou erro: fica na fila e tenta de novo depois */
+        if(/PIN|tentativas/i.test(e.message)){pinErrado=true;break}
+        if(e.semNet||!navigator.onLine)break; /* sem sinal: fica na fila e tenta de novo depois */
+        /* erro só deste envio (ex.: obra arquivada no programa): não segura os outros da fila; ele fica guardado e tenta de novo depois */
+        it.erro=String(e.message||e);try{await filaPut(it)}catch(x){}
       }
     }
     if(comBarra&&pg)pg.style.width='100%';
   }finally{descarregando=false}
-  var resto=(await filaLista()).length;pintaPend(resto);
+  var lf=await filaLista(),resto=lf.length,comErro=lf.filter(function(x){return x.erro})[0];pintaPend(resto,comErro&&comErro.erro);
   return {pendentes:resto,pinErrado:pinErrado};
 }
 var CATS=['Material','Mão de obra','Equipamento / aluguel','Transporte / frete','Combustível','Projeto / taxas / ART','Alimentação','Outros'];
@@ -651,7 +653,7 @@ function sucessoGasto(g,enviado){
   $('#ok').hidden=false;vibra(40);
   ['#gValor','#gDesc','#gForn','#gObs'].forEach(function(s){$(s).value=''});
 }
-function pintaPend(n){var b=$('#pend');if(!b)return;b.hidden=!n;b.textContent=n+(n>1?' itens':' item')+' esperando envio'}
+function pintaPend(n,er){var b=$('#pend');if(!b)return;b.hidden=!n;b.textContent=n+(n>1?' itens':' item')+' esperando envio'+(er?' (um não foi aceito: '+er+')':'')}
 $('#pend').onclick=function(){descarrega(false)};
 function tentaFila(){if(E.pin&&navigator.onLine)descarrega(false)}
 addEventListener('online',tentaFila);
