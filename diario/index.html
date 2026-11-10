@@ -445,15 +445,31 @@ function reduzir(file){
       var e=Math.min(1,M/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.round(w*e);c.height=Math.round(h*e);
       c.getContext('2d').drawImage(src,0,0,c.width,c.height);if(libera)libera();
       c.toBlob(function(b){b?ok(b):er(new Error('Não foi possível ler a foto.'))},'image/jpeg',0.82)})}
-  function viaImg(){
+  function viaImg(arq){
     return new Promise(function(ok,er){
-      var url=URL.createObjectURL(file),img=new Image();
+      var url=URL.createObjectURL(arq),img=new Image();
       img.onload=function(){desenha(img,img.naturalWidth,img.naturalHeight,function(){URL.revokeObjectURL(url)}).then(ok,er)};
       img.onerror=function(){URL.revokeObjectURL(url);er(new Error('Não foi possível abrir a foto.'))};
       img.src=url})}
-  if(window.createImageBitmap){
-    return createImageBitmap(file,{imageOrientation:'from-image'}).then(function(bm){return desenha(bm,bm.width,bm.height,function(){try{bm.close()}catch(x){}})}).catch(viaImg)}
-  return viaImg()}
+  /* ultimo recurso: a galeria as vezes entrega um arquivo que o navegador nao decodifica (ou so le por partes);
+     copia os bytes para a memoria e tenta de novo; se ainda assim nao abrir, envia o JPEG/PNG original sem reduzir */
+  function viaBytes(){
+    return file.arrayBuffer().then(function(buf){
+      if(!buf.byteLength)throw new Error('vazio');
+      var tipo=file.type||'image/jpeg',cp=new Blob([buf],{type:tipo});
+      return viaImg(cp).catch(function(){
+        if(/^image\/(jpeg|jpg|png)$/i.test(tipo)&&buf.byteLength<=10*1024*1024)return cp;
+        throw new Error('x')})})}
+  function falha(){
+    var t=(file.type||'').toLowerCase(),n=(file.name||'').toLowerCase();
+    if(!file.size)return new Error('A foto não foi baixada neste celular (Google Fotos). Abra-a na galeria, espere carregar e tente de novo, ou use a câmera.');
+    if(/heic|heif|avif/.test(t+n))return new Error('Este formato de foto (HEIC) o navegador não abre. Tire a foto pela câmera do app ou envie outra.');
+    return new Error('Não foi possível abrir esta foto. Tente de novo, escolha outra ou use a câmera do app.')}
+  function viaImgOrig(){return viaImg(file)}
+  var inicio=window.createImageBitmap
+    ?createImageBitmap(file,{imageOrientation:'from-image'}).then(function(bm){return desenha(bm,bm.width,bm.height,function(){try{bm.close()}catch(x){}})}).catch(viaImgOrig)
+    :viaImgOrig();
+  return inicio.catch(viaBytes).catch(function(){throw falha()})}
 function paraB64(b){return new Promise(function(ok,er){var r=new FileReader();r.onload=function(){ok(String(r.result).split(',')[1])};r.onerror=function(){er(new Error('Falha ao preparar a foto.'))};r.readAsDataURL(b)})}
 function pintaFotos(){
   var box=$('#fotos');box.innerHTML='';$('#fotoTot').textContent=E.fotos.length?E.fotos.length+' foto'+(E.fotos.length>1?'s':''):'';
@@ -476,7 +492,7 @@ async function addArquivos(lista){
       try{var b=await reduzir(lista[i]);it.blob=b;it.url=URL.createObjectURL(b);it.estado=''}
       catch(e){erro(e.message);var k=E.fotos.indexOf(it);if(k>=0)E.fotos.splice(k,1)}
       pintaFotos()}}
-  await Promise.all([trabalha(),trabalha(),trabalha()]);
+  await Promise.all([trabalha(),trabalha()]);
 }
 $('#bCam').onclick=function(){$('#arqCam').click()};
 $('#bGal').onclick=function(){$('#arqGal').click()};
