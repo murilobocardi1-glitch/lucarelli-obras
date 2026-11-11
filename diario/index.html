@@ -463,13 +463,21 @@ function reduzir(file){
   function falha(){
     var t=(file.type||'').toLowerCase(),n=(file.name||'').toLowerCase();
     if(!file.size)return new Error('A foto não foi baixada neste celular (Google Fotos). Abra-a na galeria, espere carregar e tente de novo, ou use a câmera.');
-    if(/heic|heif|avif/.test(t+n))return new Error('Este formato de foto (HEIC) o navegador não abre. Tire a foto pela câmera do app ou envie outra.');
+    if(/heic|heif|avif/.test(t+n))return new Error('Não consegui converter esta foto (HEIC). Confira se há sinal de internet e tente de novo, ou tire a foto pela câmera do app.');
     return new Error('Não foi possível abrir esta foto. Tente de novo, escolha outra ou use a câmera do app.')}
   function viaImgOrig(){return viaImg(file)}
   var inicio=window.createImageBitmap
     ?createImageBitmap(file,{imageOrientation:'from-image'}).then(function(bm){return desenha(bm,bm.width,bm.height,function(){try{bm.close()}catch(x){}})}).catch(viaImgOrig)
     :viaImgOrig();
-  return inicio.catch(viaBytes).catch(function(){throw falha()})}
+  /* foto HEIC/HEIF (camera Samsung em alta eficiencia): o navegador nao abre; converte aqui mesmo para JPEG (biblioteca local, carregada so quando precisa) */
+  function ehHeic(){return /heic|heif/.test(((file.type||'')+(file.name||'')).toLowerCase())}
+  function carregaHeic(){
+    if(window.heic2any)return Promise.resolve();
+    return new Promise(function(ok,er){var s=document.createElement('script');s.src='heic2any.min.js';s.onload=ok;s.onerror=function(){er(new Error('x'))};document.head.appendChild(s)})}
+  function viaHeic(){
+    return carregaHeic().then(function(){return window.heic2any({blob:file,toType:'image/jpeg',quality:0.82})})
+      .then(function(r){return viaImg(Array.isArray(r)?r[0]:r)})}
+  return inicio.catch(viaBytes).catch(function(e){if(file.size&&ehHeic())return viaHeic();throw e}).catch(function(){throw falha()})}
 function paraB64(b){return new Promise(function(ok,er){var r=new FileReader();r.onload=function(){ok(String(r.result).split(',')[1])};r.onerror=function(){er(new Error('Falha ao preparar a foto.'))};r.readAsDataURL(b)})}
 function pintaFotos(){
   var box=$('#fotos');box.innerHTML='';$('#fotoTot').textContent=E.fotos.length?E.fotos.length+' foto'+(E.fotos.length>1?'s':''):'';
