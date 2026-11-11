@@ -697,6 +697,9 @@ function abrirApp(){
   if(E.obras.length===1)E.obra=E.obras[0].id;
   if(!E.obras.some(function(o){return o.id===E.obra}))E.obra=E.obras.length===1?E.obras[0].id:'';
   E.data=(r&&r.data)||iso(new Date());E.diaId=(r&&r.diaId)||'';
+  /* rascunho de outro dia (ex.: ficou na data de ontem depois de enviar): se estiver vazio, abre em hoje */
+  var vazio=!r||(!(r.servicos||'').trim()&&!(r.ocorr||'').trim()&&!(r.outra||'').trim()&&!Object.keys(r.qtd||{}).some(function(k){return +r.qtd[k]>0}));
+  if(E.data<iso(new Date())&&vazio){E.data=iso(new Date());E.diaId='';r=r?{obra:r.obra}:null}
   E.clima=(r&&r.clima)||'Sol';E.climaManual=!!(r&&r.climaManual);
   pintaData();pintaClima();E.qtd=(r&&r.qtd)||{};pintaEquipe();
   $('#eqOutra').value=(r&&r.outra)||'';$('#servicos').value=(r&&r.servicos)||'';$('#ocorr').value=(r&&r.ocorr)||'';
