@@ -120,6 +120,10 @@ input:focus,textarea:focus{outline:2px solid var(--blue2);outline-offset:1px;bac
 .enviar:disabled{opacity:.75}
 .enviar .prog{position:absolute;left:0;top:0;bottom:0;width:0;background:rgba(255,255,255,.35);transition:width .25s}
 .enviar b{position:relative}
+#semCard .btn2{display:block;width:100%;border:0;border-radius:14px;background:var(--blue);color:#fff;font-weight:700;font-size:16px;padding:14px;cursor:pointer;margin-top:8px}
+#semCard .btn2.claro{background:none;color:var(--blue2);padding:10px}
+#semCard .btn2:disabled{opacity:.6}
+#semMsg{background:var(--blue-lt);color:var(--ink)}
 .msg{border-radius:12px;padding:12px 14px;margin-bottom:10px;font-size:15px;background:var(--bad-bg);color:var(--bad)}
 .rasc{font-size:12px;color:var(--muted);text-align:center;margin-top:6px;min-height:16px}
 
@@ -227,6 +231,19 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}
       <input type="file" id="arqCam" accept="image/*" capture="environment" hidden>
       <input type="file" id="arqGal" accept="image/*" multiple hidden>
       <div class="fotos" id="fotos"></div>
+    </div>
+    <div class="card" id="semCard">
+      <h3 style="margin:0 0 4px;font-size:16px">Relatório da semana</h3>
+      <p class="sub" style="margin:0 0 10px">Gera o diário dos últimos 7 dias, assina com o certificado A1 e envia por e-mail ao SAAE. Funciona com o computador desligado.</p>
+      <div class="msg" id="semMsg" hidden role="status"></div>
+      <button class="btn2" id="semBtn" type="button">Gerar e enviar relatório assinado</button>
+      <div id="semConf" hidden>
+        <label for="semTxt" style="display:block;margin:8px 0 4px;font-size:13px;color:var(--mut,#5a6b78)">Mensagem para o SAAE (opcional, vai no corpo do e-mail)</label>
+        <textarea id="semTxt" rows="3" maxlength="1500" style="width:100%;box-sizing:border-box;border:1px solid var(--line,#d6dee6);border-radius:12px;padding:10px;font:inherit;background:transparent;color:inherit" placeholder="Ex.: Choveu na terça e quarta, por isso a rede parou."></textarea>
+        <p style="margin:8px 0"><b>Enviar agora ao SAAE?</b> O e-mail sai assinado e não dá para desfazer.</p>
+        <button class="btn2" id="semSim" type="button">Sim, enviar</button>
+        <button class="btn2 claro" id="semNao" type="button">Cancelar</button>
+      </div>
     </div>
     </div>
     <div id="vGasto" hidden>
@@ -533,6 +550,19 @@ function fechaFolha(){$('#fFundo').hidden=true;$('#folha').hidden=true}
 function esc(t){return String(t).replace(/[<&>"]/g,function(c){return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]})}
 $('#obraBtn').onclick=abreFolha;$('#fFundo').onclick=fechaFolha;
 $('#listaObras').onclick=function(e){var b=e.target.closest('.op');if(!b)return;E.obra=b.dataset.o;guarda('luc_obra',E.obra);pintaObra();fechaFolha();salvaRascunho();if(!$('#vGasto').hidden)pintaGasto()};
+/* relatório semanal assinado (robô na nuvem) */
+function semMsg(t){var m=$('#semMsg');m.hidden=!t;m.textContent=t||''}
+$('#semBtn').onclick=function(){if(!E.obra){semMsg('Escolha a obra primeiro.');return}semMsg('');$('#semBtn').hidden=true;$('#semConf').hidden=false};
+$('#semNao').onclick=function(){$('#semConf').hidden=true;$('#semBtn').hidden=false};
+$('#semSim').onclick=async function(){
+  var b=$('#semSim');b.disabled=true;b.textContent='Pedindo...';
+  try{
+    await api('f_semanal',{pin:E.pin,obra:E.obra,mensagem:($('#semTxt').value||'').trim()});
+    $('#semConf').hidden=true;$('#semBtn').hidden=false;$('#semTxt').value='';
+    semMsg('Pedido enviado. Em uns 5 minutos o relatório assinado chega no e-mail do SAAE e uma cópia no seu.');vibra(10);
+  }catch(e){semMsg(e.semNet?'Sem conexão agora. Nada foi enviado; tente de novo.':String(e.message||e))}
+  b.disabled=false;b.textContent='Sim, enviar';
+};
 $('#sair').onclick=function(){apaga('luc_pin');apaga('luc_rasc');location.reload()};
 
 $('#repEq').onclick=function(){var u=le('luc_ult_'+E.obra,null);if(u){equipeCarrega(u.equipe);salvaRascunho();vibra(8)}};
