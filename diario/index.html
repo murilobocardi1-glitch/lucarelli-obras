@@ -158,6 +158,20 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}
 #ok p{margin:0;color:var(--muted);max-width:320px}
 #ok .btn2{margin-top:14px;width:100%;max-width:340px;border:0;border-radius:16px;background:var(--blue);color:#fff;font-weight:700;font-size:17px;padding:16px;cursor:pointer}
 #ok .btn2.claro{background:none;color:var(--blue2);padding:10px}
+
+.res{background:linear-gradient(160deg,#0f2a4a,#0b3c6e);color:#fff;border-radius:18px;padding:16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.res h3{margin:0 0 10px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:#bcd3ee;display:flex;justify-content:space-between;gap:8px}
+.res h3 small{text-transform:none;letter-spacing:0;font-weight:500}
+.res .big{font-size:30px;font-weight:800;line-height:1}
+.res .trk{position:relative;height:9px;border-radius:99px;background:rgba(255,255,255,.18);margin:8px 0 4px}
+.res .trk i{display:block;height:100%;border-radius:99px;background:#5fd08c}
+.res .trk s{position:absolute;top:-4px;bottom:-4px;width:2px;background:#f28c28}
+.res .sub2{font-size:12px;color:#bcd3ee}
+.res .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.res .grid div{background:rgba(255,255,255,.09);border-radius:12px;padding:9px 11px}
+.res .grid small{display:block;font-size:11px;color:#bcd3ee}
+.res .grid b{font-size:16px;font-variant-numeric:tabular-nums}
+.res .grid .am b{color:#ffd37a}
 </style>
 </head>
 <body>
@@ -183,6 +197,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}
   <div class="instala" id="instala" hidden><b>Instale como app</b><span>No Safari, toque em <b>Compartilhar</b> <span class="ic">&#x2B06;&#xFE0E;</span> e depois em <b>Adicionar à Tela de Início</b>.</span><button type="button" id="fechaInst" aria-label="Fechar">&times;</button></div>
 
   <div class="wrap">
+    <div class="res" id="resumoObra" hidden></div>
     <div class="abas"><button type="button" id="aDia" class="on">Diário</button><button type="button" id="aGasto">Gasto</button></div>
     <div id="vDia">
     <h1>Novo Diário de Obra</h1>
@@ -537,9 +552,23 @@ function salvaRascunho(){
 function cresce(el){el.style.height='auto';if(el.offsetHeight>0)el.style.height=el.scrollHeight+'px'}
 
 /* obra */
+function reais(v){return 'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function pintaResumo(o){
+  var el=$('#resumoObra');if(!el)return;var r=o&&o.resumo;
+  if(!r||r.avanco==null){el.hidden=true;el.innerHTML='';return}
+  var pz=null,rest=null;
+  if(r.inicio&&r.prazo){var ini=new Date(r.inicio+'T12:00:00'),hj=new Date();hj.setHours(12,0,0,0);var dec=Math.floor((hj-ini)/86400000);if(dec>=0){pz=Math.min(100,dec/r.prazo*100);rest=r.prazo-dec}}
+  var av=Math.max(0,Math.min(100,r.avanco)),nb=function(x){return x.toFixed(1).replace('.',',')};
+  var ult=r.ultimoDia?r.ultimoDia.slice(8,10)+'/'+r.ultimoDia.slice(5,7):'nenhum';
+  el.innerHTML='<h3><span>Andamento da obra</span><small>'+(rest==null?'':rest>=0?'faltam '+rest+' dias':'prazo vencido')+'</small></h3>'
+   +'<div class="big">'+nb(av)+'%</div><div class="trk"><i style="width:'+av+'%"></i>'+(pz==null?'':'<s style="left:'+pz+'%"></s>')+'</div>'
+   +'<div class="sub2">'+(pz==null?'Avanço medido da obra':'Pelo prazo deveria estar em '+nb(pz)+'% (marca laranja)')+'</div>'
+   +'<div class="grid"><div><small>Já pago</small><b>'+(r.gasto==null?'-':reais(r.gasto))+'</b></div><div class="am"><small>A pagar</small><b>'+reais(r.aPagar)+'</b></div>'
+   +'<div><small>Já medido</small><b>'+reais(r.executado)+'</b></div><div><small>Último diário</small><b>'+ult+'</b></div></div>';
+  el.hidden=false}
 function pintaObra(){
   var o=E.obras.filter(function(x){return x.id===E.obra})[0];
-  $('#obraNome').textContent=o?o.nome:'Escolha a obra';
+  $('#obraNome').textContent=o?o.nome:'Escolha a obra';pintaResumo(o);
   var ult=le('luc_ult_'+E.obra,null);
   $('#repEq').hidden=!(ult&&ult.equipe);$('#repServ').hidden=!(ult&&ult.servicos);
 }
