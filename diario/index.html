@@ -725,7 +725,12 @@ function pintaPend(n,er){var b=$('#pend');if(!b)return;b.hidden=!n;b.textContent
 $('#pend').onclick=function(){descarrega(false)};
 function tentaFila(){if(E.pin&&navigator.onLine)descarrega(false)}
 addEventListener('online',tentaFila);
-document.addEventListener('visibilitychange',function(){if(!document.hidden)tentaFila()});
+var ultResumo=Date.now();
+function atualizaObras(){
+  if(!E.pin||Date.now()-ultResumo<30000)return;ultResumo=Date.now();
+  comTentativas('f_entrar',{pin:E.pin},1).then(function(r){if(r&&r.obras){E.obras=r.obras;guarda('luc_obras',E.obras);try{pintaObra()}catch(x){}}}).catch(function(){});
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden){tentaFila();atualizaObras()}});
 setInterval(tentaFila,25000);
 function sucesso(dia,n,enviado){
   var data=dia.data.split('-').reverse().join('/');
