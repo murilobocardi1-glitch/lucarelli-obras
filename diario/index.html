@@ -53,7 +53,8 @@ button{font:inherit;color:inherit}
 .obra-btn{display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);border-radius:99px;padding:8px 14px;font-weight:650;font-size:14px;max-width:62%;cursor:pointer}
 .obra-btn span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .obra-btn svg{flex:none}
-.pend{display:block;width:100%;border:0;background:var(--amber);color:#2a1700;font-weight:700;font-size:14px;padding:8px;cursor:pointer}
+.pend{position:sticky;top:0;z-index:20;display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;border:0;border-bottom:3px solid #b45309;background:var(--amber);color:#2a1700;font-size:17px;padding:12px 10px;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.18)}
+.pend b{font-weight:800}.pend small{font-size:13px;font-weight:600;opacity:.85}
 .instala{display:flex;gap:10px;align-items:center;background:var(--blue-lt);color:var(--ink);font-size:14px;padding:10px max(16px,env(safe-area-inset-left));border-bottom:1px solid var(--line)}
 .instala span{flex:1}.instala button{border:0;background:none;font-size:24px;color:var(--muted);cursor:pointer}
 .offline{background:#7a4b00;color:#fff;text-align:center;font-size:13px;padding:6px}
@@ -194,6 +195,8 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
 .aviso{border-radius:14px;padding:11px 13px;margin-bottom:10px;font-size:14px;line-height:1.35;display:flex;gap:10px;align-items:flex-start}
 .aviso.venc{background:#fff4d6;color:#6b4a00;border:1px solid #f0d58a}.aviso.chuva{background:#e2ebf6;color:#1f4b7a;border:1px solid #b9cfe9}
 .aviso b{display:block}
+.semc2{margin-top:8px;padding:12px;border:2px solid #e8a33d;border-radius:14px;background:rgba(232,163,61,.08)}
+.chk{display:flex;gap:10px;align-items:flex-start;margin:6px 0 10px;font-size:14px}.chk input{width:22px;height:22px;flex:none;margin-top:1px}
 </style>
 </head>
 <body>
@@ -202,8 +205,8 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
 <div id="pin">
   <div class="logo"><img class="lg" alt="Lucarelli Construções"></div>
   <h2>Diário de Obra</h2>
-  <div class="dots" id="dots"><i></i><i></i><i></i><i></i></div>
-  <p id="pinmsg">Digite o PIN de 4 números</p>
+  <div class="dots" id="dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+  <p id="pinmsg">Digite o PIN de 6 números para cadastrar este celular</p>
   <div class="teclas" id="teclas"></div>
 </div>
 
@@ -283,6 +286,13 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
         <button class="btn2" id="semSim" type="button">Sim, enviar</button>
         <button class="btn2 claro" id="semNao" type="button">Cancelar</button>
       </div>
+      <div id="semConf2" hidden class="semc2">
+        <p style="margin:0 0 6px"><b>Última conferência</b></p>
+        <p style="margin:0 0 8px;font-size:14px">O relatório assinado vai para <b>compras1@</b>, <b>diretoria@</b> e <b>engenharia@saaelambari.mg.gov.br</b>, com cópia para você e para o Marco.</p>
+        <label class="chk"><input type="checkbox" id="semOk"> <span>Conferi a obra (<b id="semObra"></b>) e quero enviar ao SAAE agora</span></label>
+        <button class="btn2" id="semFinal" type="button" disabled>Enviar ao SAAE</button>
+        <button class="btn2 claro" id="semVolta" type="button">Cancelar</button>
+      </div>
     </div>
     </div>
     <div id="vGasto" hidden>
@@ -296,6 +306,7 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
         <label class="campo"><span>Categoria</span><select id="gCat"></select></label>
         <label class="campo" id="gUnW" hidden><span>Casa</span><select id="gUn"></select></label>
         <label class="campo" id="gItW" hidden><span>Item do orçamento</span><select id="gIt"></select></label>
+        <label class="campo" id="gEtW" hidden><span>Etapa da obra <small style="font-weight:400;opacity:.7">(opcional)</small></span><select id="gEt"></select></label>
         <label class="campo"><span>Data</span><input type="date" id="gData"></label>
         <div class="apg" id="gApgW"><label class="apgchk"><input type="checkbox" id="gApg"><span><b>A pagar</b><small>Ainda não foi pago (dívida combinada)</small></span></label>
           <label class="campo" id="gVencW" hidden style="margin:10px 0 0"><span>Vence em (opcional)</span><input type="date" id="gVenc"></label></div>
@@ -334,7 +345,7 @@ var FUNCOES=['Servente','Pedreiro','Operador de máquina','Calceteiro','Engenhei
 var CLIMAS=[['Sol','☀️'],['Nublado','⛅'],['Chuva fraca','🌦️'],['Chuva forte','🌧️'],['Instável','⛈️']];
 var LAMBARI=[-21.9686,-45.3528];
 var $=function(s){return document.querySelector(s)};
-var E={pin:'',obras:[],obra:'',data:'',clima:'Sol',climaManual:false,qtd:{},fotos:[],diaId:'',enviando:false};
+var E={tok:'',obras:[],obra:'',data:'',clima:'Sol',climaManual:false,qtd:{},fotos:[],diaId:'',enviando:false};
 
 function rid(n){var c='abcdefghijklmnopqrstuvwxyz0123456789',s='';for(var i=0;i<n;i++)s+=c[Math.floor(Math.random()*c.length)];return s}
 function iso(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
@@ -375,17 +386,25 @@ async function comTentativas(acao,dados,n){
 var _db=null;
 function abreDB(){return new Promise(function(ok,er){
   if(_db)return ok(_db);
-  try{var rq=indexedDB.open('diario_lucarelli',1);
-    rq.onupgradeneeded=function(){rq.result.createObjectStore('pendentes',{keyPath:'id'})};
+  try{var rq=indexedDB.open('diario_lucarelli',2);
+    rq.onupgradeneeded=function(){var db=rq.result;
+      if(!db.objectStoreNames.contains('pendentes'))db.createObjectStore('pendentes',{keyPath:'id'});
+      if(!db.objectStoreNames.contains('rascfotos'))db.createObjectStore('rascfotos',{keyPath:'id'})};
     rq.onsuccess=function(){_db=rq.result;ok(_db)};rq.onerror=function(){er(rq.error)};
   }catch(e){er(e)}})}
-function tx(modo,fn){return abreDB().then(function(db){return new Promise(function(ok,er){
-  var t=db.transaction('pendentes',modo),st=t.objectStore('pendentes'),r=fn(st);
+function tx(modo,fn,loja){return abreDB().then(function(db){return new Promise(function(ok,er){
+  var t=db.transaction(loja||'pendentes',modo),st=t.objectStore(loja||'pendentes'),r=fn(st);
   t.oncomplete=function(){ok(r&&r.result)};t.onerror=function(){er(t.error)};t.onabort=function(){er(t.error)}})})}
 function filaPut(it){return tx('readwrite',function(s){return s.put(it)})}
 function filaDel(id){return tx('readwrite',function(s){return s.delete(id)})}
 function filaTodos(){return tx('readonly',function(s){return s.getAll()}).then(function(l){return l||[]})}
 var memFila=[]; /* se o IndexedDB não funcionar, ao menos fica na memória */
+/* fotos do rascunho: cada foto é gravada no aparelho assim que é tirada (no iPhone o app pode fechar quando a câmera abre) */
+function rfPut(f,ordem){if(!f.blob&&!f.cru)return Promise.resolve();return tx('readwrite',function(s){return s.put({id:f.id,blob:f.blob||f.cru,cru:!f.blob,legenda:f.legenda||'',ordem:ordem,criado:Date.now()})},'rascfotos').catch(function(){})}
+function rfDel(id){return tx('readwrite',function(s){return s.delete(id)},'rascfotos').catch(function(){})}
+function rfLimpa(){return tx('readwrite',function(s){return s.clear()},'rascfotos').catch(function(){})}
+function rfTodas(){return tx('readonly',function(s){return s.getAll()},'rascfotos').then(function(l){return (l||[]).sort(function(a,b){return a.ordem-b.ordem})}).catch(function(){return []})}
+var tLeg={};function rfLegenda(f){clearTimeout(tLeg[f.id]);tLeg[f.id]=setTimeout(function(){rfPut(f,E.fotos.indexOf(f))},400)}
 async function filaLista(){try{return await filaTodos()}catch(e){return memFila}}
 
 /* ---------------- PIN ---------------- */
@@ -396,43 +415,40 @@ var digitos='';
   });
   $('#teclas').innerHTML=h;
   $('#teclas').onclick=function(e){var b=e.target.closest('button[data-t]');if(!b)return;vibra(8);
-    if(b.dataset.t==='⌫')digitos=digitos.slice(0,-1);else if(digitos.length<4)digitos+=b.dataset.t;
-    pintaDots();if(digitos.length===4)entrar(digitos,false)};
+    if(b.dataset.t==='⌫')digitos=digitos.slice(0,-1);else if(digitos.length<6)digitos+=b.dataset.t;
+    pintaDots();if(digitos.length===6)entrar(digitos,false)};
   document.addEventListener('keydown',function(e){if($('#pin').hidden)return;
-    if(/^\d$/.test(e.key)&&digitos.length<4){digitos+=e.key;pintaDots();if(digitos.length===4)entrar(digitos,false)}
+    if(/^\d$/.test(e.key)&&digitos.length<6){digitos+=e.key;pintaDots();if(digitos.length===6)entrar(digitos,false)}
     else if(e.key==='Backspace'){digitos=digitos.slice(0,-1);pintaDots()}});
 })();
 function pintaDots(){document.querySelectorAll('#dots i').forEach(function(d,i){d.classList.toggle('on',i<digitos.length)})}
-async function hashPin(pin){
-  try{var b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('lucarelli:'+pin));
-    return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,'0')}).join('')}catch(e){return 'p:'+pin}
-}
-function abreRapido(pin){E.pin=pin;E.obras=le('luc_obras',[]);$('#pin').hidden=true;$('#app').hidden=false;abrirApp()}
+function idAparelho(){var d=le('luc_did','');if(!/^[a-z0-9]{8,40}$/.test(d)){d=rid(20);guarda('luc_did',d)}return d}
+function nomeAparelho(){var u=navigator.userAgent||'';return /iPhone/.test(u)?'iPhone':/iPad/.test(u)?'iPad':/Android/.test(u)?'Android':'Celular'}
+function abreRapido(tok){E.tok=tok;E.obras=le('luc_obras',[]);$('#pin').hidden=true;$('#app').hidden=false;abrirApp()}
 function pinRecusado(msg){
-  apaga('luc_pin');apaga('luc_pinh');digitos='';pintaDots();
+  apaga('luc_tok');E.tok='';digitos='';pintaDots();
   $('#pin').hidden=false;$('#app').hidden=true;
   var d=$('#dots');d.classList.remove('erro');void d.offsetWidth;d.classList.add('erro');vibra([30,40,30]);$('#pinmsg').textContent=msg}
-async function entrar(pin,silencioso){
-  /* Entrada instantânea: se já entrou antes neste aparelho, abre na hora e confere com o servidor em segundo plano */
-  var cache=le('luc_obras',[]),h=await hashPin(pin),conhecido=silencioso||(le('luc_pinh','')===h);
-  if(conhecido&&cache.length){
-    abreRapido(pin);
-    comTentativas('f_entrar',{pin:pin},2).then(function(r){
-      E.obras=r.obras||[];guarda('luc_obras',E.obras);guarda('luc_pin',pin);guarda('luc_pinh',h);
-      try{pintaObra()}catch(x){}
-    }).catch(function(e){if(/PIN/i.test(e.message))pinRecusado('O PIN mudou. Digite o novo PIN.')});
-    return;
-  }
-  $('#pinmsg').textContent='Entrando...';
+/* Celular já cadastrado: abre na hora com o token e confere com o servidor em segundo plano */
+function entrarComToken(tok){
+  abreRapido(tok);
+  comTentativas('f_entrar',{t:tok},2).then(function(r){
+    E.obras=r.obras||[];guarda('luc_obras',E.obras);try{pintaObra()}catch(x){}
+  }).catch(function(e){if(/PIN/i.test(e.message))pinRecusado('Este celular precisa ser cadastrado de novo. Digite o PIN.')});
+}
+/* Cadastro: o PIN de 6 números vale uma vez; o servidor devolve um token longo só deste celular */
+async function entrar(pin){
+  $('#pinmsg').textContent='Cadastrando este celular...';
   try{
-    var r=await comTentativas('f_entrar',{pin:pin},2);
-    E.pin=pin;guarda('luc_pin',pin);guarda('luc_pinh',h);E.obras=r.obras||[];guarda('luc_obras',E.obras);
+    var r=await comTentativas('f_entrar',{pin:pin,did:idAparelho(),nome:nomeAparelho()},2);
+    if(!r.token)throw new Error('O servidor não devolveu o cadastro.');
+    E.tok=r.token;guarda('luc_tok',r.token);apaga('luc_pin');apaga('luc_pinh');
+    E.obras=r.obras||[];guarda('luc_obras',E.obras);
     try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(x){}
     $('#pin').hidden=true;$('#app').hidden=false;abrirApp();
   }catch(e){
     digitos='';pintaDots();
-    if(/PIN/i.test(e.message)){apaga('luc_pin');apaga('luc_pinh');var d=$('#dots');d.classList.remove('erro');void d.offsetWidth;d.classList.add('erro');vibra([30,40,30]);$('#pinmsg').textContent=e.message}
-    else if(silencioso){$('#pinmsg').textContent='Sem conexão. Digite o PIN para tentar de novo.'}
+    if(/PIN|tentativas|bloquead/i.test(e.message)){var d=$('#dots');d.classList.remove('erro');void d.offsetWidth;d.classList.add('erro');vibra([30,40,30]);$('#pinmsg').textContent=e.message}
     else $('#pinmsg').textContent='Não consegui entrar: '+e.message;
     $('#pin').hidden=false;$('#app').hidden=true;
   }
@@ -545,35 +561,51 @@ function pintaFotos(){
     d.innerHTML='<div class="im"><img alt=""><div class="tag" hidden></div></div><input type="text" placeholder="Legenda (opcional)" maxlength="300"><button class="x" type="button" aria-label="Remover foto">&times;</button>';
     if(f.url)d.querySelector('img').src=f.url;
     var tg=d.querySelector('.tag');if(f.estado==='prep'){tg.hidden=false;tg.className='tag';tg.textContent='Preparando...'}else if(f.estado==='ok'){tg.hidden=false;tg.className='tag ok';tg.textContent='✓'}else if(f.estado==='er'){tg.hidden=false;tg.className='tag er';tg.textContent='Falhou'}else if(f.estado==='env'){tg.hidden=false;tg.className='tag';tg.textContent='...'}
-    var inp=d.querySelector('input');inp.value=f.legenda;inp.oninput=function(){f.legenda=inp.value};
-    d.querySelector('.x').onclick=function(){if(E.enviando)return;URL.revokeObjectURL(f.url);E.fotos.splice(i,1);pintaFotos()};
+    var inp=d.querySelector('input');inp.value=f.legenda;inp.oninput=function(){f.legenda=inp.value;rfLegenda(f)};
+    d.querySelector('.x').onclick=function(){if(E.enviando)return;URL.revokeObjectURL(f.url);E.fotos.splice(i,1);rfDel(f.id);pintaFotos()};
     box.appendChild(d)})}
 async function addArquivos(lista){
   lista=[].slice.call(lista);
-  var itens=lista.map(function(f){var it={id:rid(12),blob:null,legenda:'',url:'',estado:'prep'};E.fotos.push(it);return it});
+  var base=E.fotos.length;
+  var itens=lista.map(function(f){var it={id:rid(12),blob:null,cru:f,legenda:'',url:'',estado:'prep'};E.fotos.push(it);return it});
   pintaFotos();
+  /* grava a foto original no aparelho na hora, antes de reduzir: se o app fechar agora, ela volta ao abrir */
+  await Promise.all(itens.map(function(it,k){return rfPut(it,base+k)}));salvaRascunhoJa();
   var prox=0;
   async function trabalha(){
     while(prox<lista.length){
       var i=prox++,it=itens[i];
-      try{var b=await reduzir(lista[i]);it.blob=b;it.url=URL.createObjectURL(b);it.estado=''}
-      catch(e){erro(e.message);var k=E.fotos.indexOf(it);if(k>=0)E.fotos.splice(k,1)}
+      try{var b=await reduzir(lista[i]);it.blob=b;it.cru=null;it.url=URL.createObjectURL(b);it.estado='';rfPut(it,E.fotos.indexOf(it))}
+      catch(e){erro(e.message);var k=E.fotos.indexOf(it);if(k>=0)E.fotos.splice(k,1);rfDel(it.id)}
       pintaFotos()}}
   await Promise.all([trabalha(),trabalha()]);
 }
-$('#bCam').onclick=function(){$('#arqCam').click()};
+$('#bCam').onclick=function(){salvaRascunhoJa();$('#arqCam').click()};
 $('#bGal').onclick=function(){$('#arqGal').click()};
 $('#arqCam').onchange=function(){var l=this.files;addArquivos(l);this.value=''};
 $('#arqGal').onchange=function(){var l=this.files;addArquivos(l);this.value=''};
 
 function erro(t){var m=$('#erro');if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false;vibra([30,40,30]);window.scrollTo({top:0,behavior:'smooth'})}
 
-/* rascunho (só neste aparelho; as fotos não entram nele) */
+/* rascunho (só neste aparelho): o texto no localStorage e as fotos no IndexedDB (rascfotos) */
 var tRasc;
-function salvaRascunho(){
-  clearTimeout(tRasc);tRasc=setTimeout(function(){
-    guarda('luc_rasc',{obra:E.obra,data:E.data,clima:E.clima,climaManual:E.climaManual,qtd:E.qtd,outra:$('#eqOutra').value,servicos:$('#servicos').value,ocorr:$('#ocorr').value,diaId:E.diaId});
-    $('#rasc').textContent='Rascunho guardado neste aparelho';},300)}
+function salvaRascunhoJa(){
+  clearTimeout(tRasc);
+  guarda('luc_rasc',{obra:E.obra,data:E.data,clima:E.clima,climaManual:E.climaManual,qtd:E.qtd,outra:$('#eqOutra').value,servicos:$('#servicos').value,ocorr:$('#ocorr').value,diaId:E.diaId});
+  $('#rasc').textContent='Rascunho guardado neste aparelho'+(E.fotos.length?' (com '+E.fotos.length+' foto'+(E.fotos.length>1?'s':'')+')':'')}
+function salvaRascunho(){clearTimeout(tRasc);tRasc=setTimeout(salvaRascunhoJa,300)}
+/* ao abrir: devolve as fotos do rascunho que estavam gravadas no aparelho */
+async function recuperaFotos(){
+  var l=await rfTodas();if(!l.length||E.fotos.length)return;
+  l.forEach(function(x){var it={id:x.id,blob:x.cru?null:x.blob,cru:x.cru?x.blob:null,legenda:x.legenda||'',url:'',estado:x.cru?'prep':''};
+    if(it.blob)it.url=URL.createObjectURL(it.blob);E.fotos.push(it)});
+  pintaFotos();
+  $('#rasc').textContent=l.length+' foto'+(l.length>1?'s':'')+' do rascunho '+(l.length>1?'recuperadas':'recuperada')+'.';
+  for(var i=0;i<E.fotos.length;i++){var it=E.fotos[i];if(!it.cru)continue;
+    try{var b=await reduzir(it.cru);it.blob=b;it.cru=null;it.url=URL.createObjectURL(b);it.estado='';rfPut(it,i)}
+    catch(e){it.estado='er'}
+    pintaFotos()}
+}
 ['#eqOutra','#servicos','#ocorr'].forEach(function(s){$(s).addEventListener('input',salvaRascunho)});
 function cresce(el){el.style.height='auto';if(el.offsetHeight>0)el.style.height=el.scrollHeight+'px'}
 
@@ -650,16 +682,23 @@ $('#listaObras').onclick=function(e){var b=e.target.closest('.op');if(!b)return;
 function semMsg(t){var m=$('#semMsg');m.hidden=!t;m.textContent=t||''}
 $('#semBtn').onclick=function(){if(!E.obra){semMsg('Escolha a obra primeiro.');return}semMsg('');$('#semBtn').hidden=true;$('#semConf').hidden=false};
 $('#semNao').onclick=function(){$('#semConf').hidden=true;$('#semBtn').hidden=false};
-$('#semSim').onclick=async function(){
-  var b=$('#semSim');b.disabled=true;b.textContent='Pedindo...';
+$('#semSim').onclick=function(){
+  var o=E.obras.filter(function(x){return x.id===E.obra})[0]||{};
+  $('#semObra').textContent=o.nome||E.obra;$('#semOk').checked=false;$('#semFinal').disabled=true;
+  $('#semConf').hidden=true;$('#semConf2').hidden=false;vibra(10)};
+$('#semOk').onchange=function(){$('#semFinal').disabled=!this.checked};
+$('#semVolta').onclick=function(){$('#semConf2').hidden=true;$('#semBtn').hidden=false};
+$('#semFinal').onclick=async function(){
+  if(!$('#semOk').checked)return;
+  var b=$('#semFinal');b.disabled=true;b.textContent='Pedindo...';
   try{
-    await api('f_semanal',{pin:E.pin,obra:E.obra,mensagem:($('#semTxt').value||'').trim()});
-    $('#semConf').hidden=true;$('#semBtn').hidden=false;$('#semTxt').value='';
+    await api('f_semanal',{t:E.tok,obra:E.obra,mensagem:($('#semTxt').value||'').trim(),confirmado:'ENVIAR AO SAAE'});
+    $('#semConf2').hidden=true;$('#semBtn').hidden=false;$('#semTxt').value='';
     semMsg('Pedido enviado. Em uns 5 minutos o relatório assinado chega no e-mail do SAAE e uma cópia no seu.');vibra(10);
   }catch(e){semMsg(e.semNet?'Sem conexão agora. Nada foi enviado; tente de novo.':String(e.message||e))}
-  b.disabled=false;b.textContent='Sim, enviar';
+  b.textContent='Enviar ao SAAE';b.disabled=!$('#semOk').checked;
 };
-$('#sair').onclick=function(){apaga('luc_pin');apaga('luc_rasc');location.reload()};
+$('#sair').onclick=function(){apaga('luc_tok');apaga('luc_pin');apaga('luc_rasc');location.reload()};
 
 $('#repEq').onclick=function(){var u=le('luc_ult_'+E.obra,null);if(u){equipeCarrega(u.equipe);salvaRascunho();vibra(8)}};
 $('#repServ').onclick=function(){var u=le('luc_ult_'+E.obra,null);if(u){$('#servicos').value=u.servicos;cresce($('#servicos'));salvaRascunho();vibra(8)}};
@@ -688,7 +727,7 @@ $('#enviar').onclick=async function(){
     guarda('luc_ult_'+E.obra,{equipe:dia.equipe,servicos:dia.servicos});
     var n=E.fotos.length;
     var res=await descarrega(true);
-    if(res&&res.pinErrado){erro('O PIN mudou. Digite o novo PIN.');apaga('luc_pin');return}
+    if(res&&res.pinErrado){pinRecusado('Este celular precisa ser cadastrado de novo. Digite o PIN.');return}
     sucesso(dia,n,res&&res.pendentes===0);
   }catch(e){erro('Não consegui guardar o diário: '+e.message)}
   finally{E.enviando=false;btn.disabled=false;$('#enviarTxt').textContent='Enviar Diário';setTimeout(function(){$('#prog').style.width='0'},900)}
@@ -703,20 +742,20 @@ async function descarrega(comBarra){
     for(var k=0;k<fila.length;k++){
       var it=fila[k];
       try{
-        if(it.gasto){await api('f_gasto',{pin:E.pin,obra:it.obra,gasto:it.gasto});feito++;try{await filaDel(it.id)}catch(x){}memFila=memFila.filter(function(x){return x.id!==it.id});continue}
+        if(it.gasto){await api('f_gasto',{t:E.tok,obra:it.obra,gasto:it.gasto});feito++;try{await filaDel(it.id)}catch(x){}memFila=memFila.filter(function(x){return x.id!==it.id});continue}
         var faltam=it.fotos.filter(function(f){return !f.enviada}),prox=0,falha=null;
         async function sobe(){ /* 3 fotos ao mesmo tempo: o tempo de espera do Google é dividido */
           while(prox<faltam.length&&!falha){
             var f=faltam[prox++];
             try{
               var b64=await paraB64(f.blob);
-              await api('f_foto',{pin:E.pin,obra:it.obra,id:f.id,b64:b64});
+              await api('f_foto',{t:E.tok,obra:it.obra,id:f.id,b64:b64});
               f.enviada=true;try{await filaPut(it)}catch(x){}
               feito++;if(comBarra&&pg)pg.style.width=Math.max(6,Math.round(feito/totalPassos*95))+'%';
             }catch(e){falha=e}}}
         await Promise.all([sobe(),sobe(),sobe()]);
         if(falha)throw falha;
-        await api('f_dia',{pin:E.pin,obra:it.obra,dia:it.dia}); /* por último: o programa nunca lê um dia sem as fotos */
+        await api('f_dia',{t:E.tok,obra:it.obra,dia:it.dia}); /* por último: o programa nunca lê um dia sem as fotos */
         feito++;
         try{await filaDel(it.id)}catch(x){}
         memFila=memFila.filter(function(x){return x.id!==it.id});
@@ -737,9 +776,10 @@ function opcoes(sel,lista,vazio){sel.innerHTML=(vazio!=null?'<option value="">'+
 function pintaGasto(){
   var o=E.obras.filter(function(x){return x.id===E.obra})[0]||{};
   opcoes($('#gCat'),CATS);
-  var un=o.unidades||[],it=o.itens||[];
-  $('#gUnW').hidden=!un.length;$('#gItW').hidden=!it.length;
-  opcoes($('#gUn'),un,'Geral');opcoes($('#gIt'),it,'Nenhum');
+  var un=o.unidades||[],it=o.itens||[],et=o.etapas||[],etAntes=$('#gEt').value;
+  $('#gUnW').hidden=!un.length;$('#gItW').hidden=!it.length;$('#gEtW').hidden=!et.length;
+  opcoes($('#gUn'),un,'Geral');opcoes($('#gIt'),it,'Nenhum');opcoes($('#gEt'),et,'Não sei / geral');
+  if(etAntes&&et.indexOf(etAntes)>=0)$('#gEt').value=etAntes;
   if(!$('#gData').value)$('#gData').value=iso(new Date());
 }
 function aba(g){
@@ -769,14 +809,14 @@ $('#gEnviar').onclick=async function(){
   if(!desc)return gErro('Escreva a descrição do gasto.');
   if(!$('#gData').value)return gErro('Informe a data.');
   var g={id:rid(12),data:$('#gData').value,valor:Math.round(v*100)/100,descricao:desc,fornecedor:$('#gForn').value.trim(),
-    categoria:$('#gCat').value,unidade:$('#gUn').value,item:$('#gIt').value,obs:$('#gObs').value.trim()};
+    categoria:$('#gCat').value,unidade:$('#gUn').value,item:$('#gIt').value,etapa:$('#gEt').value,obs:$('#gObs').value.trim()};
   if($('#gApg').checked){var vc=$('#gVenc').value;g.obs=('A pagar'+(vc?' '+vc.slice(8,10)+'/'+vc.slice(5,7)+'/'+vc.slice(0,4):'')+(g.obs?' · '+g.obs:''))}
   var item={id:g.id,obra:E.obra,gasto:g,criado:Date.now(),fotos:[]};
   E.enviando=true;var btn=$('#gEnviar');btn.disabled=true;$('#gEnviarTxt').textContent='Enviando...';
   try{
     try{await filaPut(item)}catch(e){memFila=memFila.filter(function(x){return x.id!==item.id});memFila.push(item)}
     var res=await descarrega(false);
-    if(res&&res.pinErrado){gErro('O PIN mudou. Digite o novo PIN.');apaga('luc_pin');return}
+    if(res&&res.pinErrado){pinRecusado('Este celular precisa ser cadastrado de novo. Digite o PIN.');return}
     sucessoGasto(g,res&&res.pendentes===0);
   }catch(e){gErro('Não consegui guardar o gasto: '+e.message)}
   finally{E.enviando=false;btn.disabled=false;$('#gEnviarTxt').textContent='Enviar Gasto'}
@@ -791,14 +831,15 @@ function sucessoGasto(g,enviado){
 }
 function pintaApg(){var on=$('#gApg').checked;$('#gApgW').classList.toggle('on',on);$('#gVencW').hidden=!on}
 document.addEventListener('change',function(e){if(e.target&&e.target.id==='gApg')pintaApg()});
-function pintaPend(n,er){var b=$('#pend');if(!b)return;b.hidden=!n;b.textContent=n+(n>1?' itens':' item')+' esperando envio'+(er?' (um não foi aceito: '+er+')':'')}
+function pintaPend(n,er){var b=$('#pend');if(!b)return;b.hidden=!n;
+  b.innerHTML='<b>'+n+(n>1?' lançamentos pendentes':' lançamento pendente')+' de envio</b><small>'+(er?'Um não foi aceito: '+esc(er):navigator.onLine?'Toque para enviar agora':'Sem internet: sobe sozinho quando o sinal voltar')+'</small>'}
 $('#pend').onclick=function(){descarrega(false)};
-function tentaFila(){if(E.pin&&navigator.onLine)descarrega(false)}
+function tentaFila(){if(E.tok&&navigator.onLine)descarrega(false)}
 addEventListener('online',tentaFila);
 var ultResumo=Date.now();
 function atualizaObras(){
-  if(!E.pin||Date.now()-ultResumo<30000)return;ultResumo=Date.now();
-  comTentativas('f_entrar',{pin:E.pin},1).then(function(r){if(r&&r.obras){E.obras=r.obras;guarda('luc_obras',E.obras);try{pintaObra()}catch(x){}}}).catch(function(){});
+  if(!E.tok||Date.now()-ultResumo<30000)return;ultResumo=Date.now();
+  comTentativas('f_entrar',{t:E.tok},1).then(function(r){if(r&&r.obras){E.obras=r.obras;guarda('luc_obras',E.obras);try{pintaObra()}catch(x){}}}).catch(function(){});
 }
 document.addEventListener('visibilitychange',function(){if(!document.hidden){tentaFila();atualizaObras()}});
 setInterval(tentaFila,25000);
@@ -810,6 +851,7 @@ function sucesso(dia,n,enviado){
     :'Sem sinal agora. O dia '+data+' ficou guardado no celular e sobe sozinho quando a internet voltar. Abra o app de novo quando estiver com sinal.';
   $('#ok').hidden=false;vibra(40);
   apaga('luc_rasc');
+  if(!memFila.some(function(x){return x.dia&&x.dia.id===dia.id}))rfLimpa();   /* as fotos já estão na fila de envio (pendentes) */
   E.fotos.forEach(function(f){URL.revokeObjectURL(f.url)});E.fotos=[];E.diaId='';
   pintaFotos();
 }
@@ -838,13 +880,15 @@ function abrirApp(){
   E.clima=(r&&r.clima)||'Sol';E.climaManual=!!(r&&r.climaManual);
   pintaData();pintaClima();E.qtd=(r&&r.qtd)||{};pintaEquipe();
   $('#eqOutra').value=(r&&r.outra)||'';$('#servicos').value=(r&&r.servicos)||'';$('#ocorr').value=(r&&r.ocorr)||'';
-  cresce($('#servicos'));cresce($('#ocorr'));pintaObra();pintaFotos();
+  cresce($('#servicos'));cresce($('#ocorr'));pintaObra();pintaFotos();recuperaFotos();
   if(!E.climaManual)buscaClima();
   if(!E.obra&&E.obras.length>1)setTimeout(abreFolha,350);
 }
 $('#fechaInst').onclick=function(){$('#instala').hidden=true;guarda('luc_inst_fechado',true)};
 if('serviceWorker' in navigator){addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){document.addEventListener('visibilitychange',function(){if(!document.hidden)r.update()})}).catch(function(){})})}
-(function iniciar(){var p=le('luc_pin','');pintaDots();if(p)entrar(p,true)})();
+(function iniciar(){pintaDots();var t=le('luc_tok','');
+  if(/^[a-f0-9]{64}$/.test(t)){entrarComToken(t);return}
+  if(le('luc_pin','')){apaga('luc_pin');apaga('luc_pinh');$('#pinmsg').textContent='Por segurança, o PIN agora tem 6 números. Digite o PIN novo para cadastrar este celular.'}})();
 </script>
 </body>
 </html>
