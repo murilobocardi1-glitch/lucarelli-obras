@@ -172,6 +172,19 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}
 .res .grid small{display:block;font-size:11px;color:#bcd3ee}
 .res .grid b{font-size:16px;font-variant-numeric:tabular-nums}
 .res .grid .am b{color:#ffd37a}
+.tempo h3{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.tempo h3 small{font-weight:500;font-size:12px;color:var(--muted)}
+.tgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.tdia{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px;border-radius:12px;background:var(--tbg,#f1f5f9);text-align:center;font-size:12px;min-width:0}
+.tdia b{font-size:12px}.tdia small{font-size:10px;color:var(--muted)}
+.tico{font-size:22px;line-height:1.2}
+.ttmp{font-weight:700;font-variant-numeric:tabular-nums}.ttmp em{font-style:normal;font-weight:500;color:var(--muted)}
+.tmm{font-size:10px;color:#3d6fa8;font-variant-numeric:tabular-nums}.tchu{font-size:11px;color:#3d6fa8;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tdia.media{background:#e2ebf6}.tdia.alta{background:#cfe0f5;box-shadow:inset 0 0 0 1.5px #3d6fa8}
+.tdia.alta .tchu{font-weight:700}
+.tsem{grid-column:1/-1;margin:0;color:var(--muted);font-size:13px}
+html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{background:#1d3a5e}html[data-tema=dark] .tdia.alta{background:#24497a;box-shadow:inset 0 0 0 1.5px #7fbaf0}html[data-tema=dark] .tchu,html[data-tema=dark] .tmm{color:#9fcbf5}
+.tempo{background:#fff;border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:var(--shadow)}.tempo h3{margin:0 0 10px;font-size:14px}.tgrid{gap:4px}.tdia{padding:7px 1px}.tico{font-size:20px}
 </style>
 </head>
 <body>
@@ -198,6 +211,7 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}
 
   <div class="wrap">
     <div class="res" id="resumoObra" hidden></div>
+    <div class="tempo" id="tempoBox"><h3>Previsão do tempo <small>Lambari · % de chuva</small></h3><div class="tgrid"><p class="tsem">Buscando previsão...</p></div></div>
     <div class="abas"><button type="button" id="aDia" class="on">Diário</button><button type="button" id="aGasto">Gasto</button></div>
     <div id="vDia">
     <h1>Novo Diário de Obra</h1>
@@ -551,6 +565,28 @@ function salvaRascunho(){
 ['#eqOutra','#servicos','#ocorr'].forEach(function(s){$(s).addEventListener('input',salvaRascunho)});
 function cresce(el){el.style.height='auto';if(el.offsetHeight>0)el.style.height=el.scrollHeight+'px'}
 
+/* previsão do tempo (Open-Meteo, sem chave) — Lambari/MG */
+var TEMPO_URL='https://api.open-meteo.com/v1/forecast?latitude=-21.97&longitude=-45.35&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum&timezone=America%2FSao_Paulo&forecast_days=7';
+function tempoIcone(c){return c<=1?'☀️':c<=3?'⛅':c<=48?'🌫️':c<=67||(c>=80&&c<=82)?'🌧️':c<=77||c===85||c===86?'🌨️':'⛈️'}
+function tempoNome(c){return c===0?'Céu limpo':c<=2?'Poucas nuvens':c===3?'Nublado':c<=48?'Neblina':c<=57?'Garoa':c<=67?'Chuva':c<=77?'Neve':c<=82?'Pancadas':c<=86?'Neve':'Tempestade'}
+function tempoBusca(){
+  var k='luc_tempo';try{var c=JSON.parse(localStorage.getItem(k)||'null');if(c&&Date.now()-c.t<3600000)return Promise.resolve(c.d)}catch(e){}
+  return fetch(TEMPO_URL).then(function(r){if(!r.ok)throw new Error('tempo');return r.json()}).then(function(d){try{localStorage.setItem(k,JSON.stringify({t:Date.now(),d:d}))}catch(e){}return d});
+}
+function tempoHtml(d){
+  var y=d.daily,S=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  return y.time.map(function(t,i){
+    var dt=new Date(t+'T12:00:00'),p=y.precipitation_probability_max[i]||0,mm=y.precipitation_sum[i]||0,cls=p>=60?'alta':p>=30?'media':'';
+    return '<div class="tdia '+cls+'"><b>'+(i===0?'Hoje':S[dt.getDay()])+'</b><small>'+t.slice(8,10)+'/'+t.slice(5,7)+'</small>'
+      +'<span class="tico" title="'+tempoNome(y.weather_code[i])+'">'+tempoIcone(y.weather_code[i])+'</span>'
+      +'<span class="ttmp">'+Math.round(y.temperature_2m_max[i])+'° <em>'+Math.round(y.temperature_2m_min[i])+'°</em></span>'
+      +'<span class="tchu">'+p+'%</span>'+(mm>=0.5?'<span class="tmm">'+mm.toFixed(0)+' mm</span>':'<span class="tmm">&nbsp;</span>')+'</div>'}).join('');
+}
+function tempoPreenche(el){
+  if(!el)return;tempoBusca().then(function(d){el.querySelector('.tgrid').innerHTML=tempoHtml(d);el.hidden=false})
+  .catch(function(){el.querySelector('.tgrid').innerHTML='<p class="tsem">Sem internet para buscar a previsão agora.</p>'});
+}
+
 /* obra */
 function reais(v){return 'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function pintaResumo(o){
@@ -566,7 +602,7 @@ function pintaResumo(o){
    +'<div class="grid"><div><small>Já pago</small><b>'+(r.gasto==null?'-':reais(r.gasto))+'</b></div><div class="am"><small>A pagar</small><b>'+reais(r.aPagar)+'</b></div>'
    +'<div><small>Já medido</small><b>'+reais(r.executado)+'</b></div><div><small>Último diário</small><b>'+ult+'</b></div></div>';
   el.hidden=false}
-function pintaObra(){
+function pintaObra(){tempoPreenche(document.getElementById('tempoBox'));
   var o=E.obras.filter(function(x){return x.id===E.obra})[0];
   $('#obraNome').textContent=o?o.nome:'Escolha a obra';pintaResumo(o);
   var ult=le('luc_ult_'+E.obra,null);
