@@ -185,6 +185,15 @@ input[type=date]::-webkit-date-and-time-value{text-align:left;min-width:0}
 .tsem{grid-column:1/-1;margin:0;color:var(--muted);font-size:13px}
 html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{background:#1d3a5e}html[data-tema=dark] .tdia.alta{background:#24497a;box-shadow:inset 0 0 0 1.5px #7fbaf0}html[data-tema=dark] .tchu,html[data-tema=dark] .tmm{color:#9fcbf5}
 .tempo{background:#fff;border-radius:18px;padding:14px;margin-bottom:14px;box-shadow:var(--shadow)}.tempo h3{margin:0 0 10px;font-size:14px}.tgrid{gap:4px}.tdia{padding:7px 1px}.tico{font-size:20px}
+
+.apg{border:1.5px solid var(--line,#d6dee6);border-radius:14px;padding:12px;margin-bottom:12px}
+.apg.on{border-color:#e0a800;background:#fff8e6}
+.apgchk{display:flex;align-items:center;gap:12px;cursor:pointer}
+.apgchk input{width:24px;height:24px;accent-color:#e0a800;flex:none}
+.apgchk span{display:flex;flex-direction:column}.apgchk small{font-size:12px;color:var(--muted)}
+.aviso{border-radius:14px;padding:11px 13px;margin-bottom:10px;font-size:14px;line-height:1.35;display:flex;gap:10px;align-items:flex-start}
+.aviso.venc{background:#fff4d6;color:#6b4a00;border:1px solid #f0d58a}.aviso.chuva{background:#e2ebf6;color:#1f4b7a;border:1px solid #b9cfe9}
+.aviso b{display:block}
 </style>
 </head>
 <body>
@@ -210,6 +219,7 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
   <div class="instala" id="instala" hidden><b>Instale como app</b><span>No Safari, toque em <b>Compartilhar</b> <span class="ic">&#x2B06;&#xFE0E;</span> e depois em <b>Adicionar à Tela de Início</b>.</span><button type="button" id="fechaInst" aria-label="Fechar">&times;</button></div>
 
   <div class="wrap">
+    <div id="avisos"></div>
     <div class="res" id="resumoObra" hidden></div>
     <div class="tempo" id="tempoBox"><h3>Previsão do tempo <small>Lambari · % de chuva</small></h3><div class="tgrid"><p class="tsem">Buscando previsão...</p></div></div>
     <div class="abas"><button type="button" id="aDia" class="on">Diário</button><button type="button" id="aGasto">Gasto</button></div>
@@ -287,6 +297,8 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
         <label class="campo" id="gUnW" hidden><span>Casa</span><select id="gUn"></select></label>
         <label class="campo" id="gItW" hidden><span>Item do orçamento</span><select id="gIt"></select></label>
         <label class="campo"><span>Data</span><input type="date" id="gData"></label>
+        <div class="apg" id="gApgW"><label class="apgchk"><input type="checkbox" id="gApg"><span><b>A pagar</b><small>Ainda não foi pago (dívida combinada)</small></span></label>
+          <label class="campo" id="gVencW" hidden style="margin:10px 0 0"><span>Vence em (opcional)</span><input type="date" id="gVenc"></label></div>
         <label class="campo"><span>Observação</span><input type="text" id="gObs" placeholder="Opcional" maxlength="500" autocomplete="off"></label>
       </div>
     </div>
@@ -587,6 +599,25 @@ function tempoPreenche(el){
   .catch(function(){el.querySelector('.tgrid').innerHTML='<p class="tsem">Sem internet para buscar a previsão agora.</p>'});
 }
 
+
+function pintaAvisos(o,prev){
+  var el=$('#avisos');if(!el)return;var h='',r=o&&o.resumo,hj=new Date();hj.setHours(12,0,0,0);
+  var iso=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
+  var am=new Date(hj.getTime()+86400000),H=iso(hj),A=iso(am);
+  if(r&&r.contas){
+    var vencidas=r.contas.filter(function(c){return c.venc&&c.venc<H}),hoje=r.contas.filter(function(c){return c.venc===H}),amanha=r.contas.filter(function(c){return c.venc===A});
+    var lst=function(a){return a.map(function(c){return esc(c.d)+(c.f?' ('+esc(c.f)+')':'')+' '+reais(c.v)}).join('; ')};
+    if(vencidas.length)h+='<div class="aviso venc">💰<div><b>Conta vencida</b>'+lst(vencidas)+'</div></div>';
+    if(hoje.length)h+='<div class="aviso venc">💰<div><b>Vence hoje</b>'+lst(hoje)+'</div></div>';
+    if(amanha.length)h+='<div class="aviso venc">💰<div><b>Vence amanhã</b>'+lst(amanha)+'</div></div>';
+  }
+  if(prev&&prev.daily){var i=prev.daily.time.indexOf(A),j=prev.daily.time.indexOf(H);
+    var aviso=function(k,quando){var p=prev.daily.precipitation_probability_max[k]||0,mm=prev.daily.precipitation_sum[k]||0;
+      return p>=60?'<div class="aviso chuva">🌧️<div><b>'+quando+': '+p+'% de chance de chuva</b>'+(mm>=1?'Previsão de '+mm.toFixed(0)+' mm. ':'')+'Programe o serviço.</div></div>':''};
+    if(j>=0&&hj.getHours&&new Date().getHours()<12)h+=aviso(j,'Hoje');
+    if(i>=0)h+=aviso(i,'Amanhã');}
+  el.innerHTML=h;
+}
 /* obra */
 function reais(v){return 'R$ '+(+v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
 function pintaResumo(o){
@@ -602,7 +633,7 @@ function pintaResumo(o){
    +'<div class="grid"><div><small>Já pago</small><b>'+(r.gasto==null?'-':reais(r.gasto))+'</b></div><div class="am"><small>A pagar</small><b>'+reais(r.aPagar)+'</b></div>'
    +'<div><small>Já medido</small><b>'+reais(r.executado)+'</b></div><div><small>Último diário</small><b>'+ult+'</b></div></div>';
   el.hidden=false}
-function pintaObra(){tempoPreenche(document.getElementById('tempoBox'));
+function pintaObra(){tempoPreenche(document.getElementById('tempoBox'));(function(){var o=E.obras.filter(function(x){return x.id===E.obra})[0];pintaAvisos(o,null);tempoBusca().then(function(d){pintaAvisos(o,d)}).catch(function(){})})();
   var o=E.obras.filter(function(x){return x.id===E.obra})[0];
   $('#obraNome').textContent=o?o.nome:'Escolha a obra';pintaResumo(o);
   var ult=le('luc_ult_'+E.obra,null);
@@ -739,6 +770,7 @@ $('#gEnviar').onclick=async function(){
   if(!$('#gData').value)return gErro('Informe a data.');
   var g={id:rid(12),data:$('#gData').value,valor:Math.round(v*100)/100,descricao:desc,fornecedor:$('#gForn').value.trim(),
     categoria:$('#gCat').value,unidade:$('#gUn').value,item:$('#gIt').value,obs:$('#gObs').value.trim()};
+  if($('#gApg').checked){var vc=$('#gVenc').value;g.obs=('A pagar'+(vc?' '+vc.slice(8,10)+'/'+vc.slice(5,7)+'/'+vc.slice(0,4):'')+(g.obs?' · '+g.obs:''))}
   var item={id:g.id,obra:E.obra,gasto:g,criado:Date.now(),fotos:[]};
   E.enviando=true;var btn=$('#gEnviar');btn.disabled=true;$('#gEnviarTxt').textContent='Enviando...';
   try{
@@ -752,11 +784,13 @@ $('#gEnviar').onclick=async function(){
 function sucessoGasto(g,enviado){
   var v=g.valor.toFixed(2).replace('.',',');
   $('#okTit').textContent=enviado?'Enviado!':'Guardado!';
-  $('#okTxt').textContent=enviado?'Gasto de R$ '+v+' já está a caminho do programa no computador.':'Sem sinal agora. O gasto de R$ '+v+' ficou guardado no celular e sobe sozinho quando a internet voltar.';
+  $('#okTxt').textContent=enviado?'Gasto de R$ '+v+(/^A pagar/.test(g.obs)?' (a pagar)':'')+' já está a caminho do programa no computador.':'Sem sinal agora. O gasto de R$ '+v+' ficou guardado no celular e sobe sozinho quando a internet voltar.';
   E.okGasto=true;$('#novoDia').textContent='Lançar outro gasto';$('#mesmoDia').textContent='Voltar';
   $('#ok').hidden=false;vibra(40);
-  ['#gValor','#gDesc','#gForn','#gObs'].forEach(function(s){$(s).value=''});
+  ['#gValor','#gDesc','#gForn','#gObs','#gVenc'].forEach(function(s){$(s).value=''});$('#gApg').checked=false;pintaApg();
 }
+function pintaApg(){var on=$('#gApg').checked;$('#gApgW').classList.toggle('on',on);$('#gVencW').hidden=!on}
+document.addEventListener('change',function(e){if(e.target&&e.target.id==='gApg')pintaApg()});
 function pintaPend(n,er){var b=$('#pend');if(!b)return;b.hidden=!n;b.textContent=n+(n>1?' itens':' item')+' esperando envio'+(er?' (um não foi aceito: '+er+')':'')}
 $('#pend').onclick=function(){descarrega(false)};
 function tentaFila(){if(E.pin&&navigator.onLine)descarrega(false)}
