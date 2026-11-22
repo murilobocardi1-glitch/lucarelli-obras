@@ -200,7 +200,9 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
 .contas{margin-top:14px;border-top:1px solid rgba(127,127,127,.25);padding-top:10px}.contas h4{margin:0 0 6px;font-size:15px}
 .cta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(127,127,127,.15)}.cta small{opacity:.75;font-size:12.5px}
 .ctv{display:flex;align-items:center;gap:10px;flex:none}.pg{border:0;border-radius:10px;padding:9px 12px;font-weight:700;font-size:14px;background:#e7f6ec;color:#146c2e;cursor:pointer;min-height:40px}
-.pg.conf{background:#146c2e;color:#fff}.pg:disabled{opacity:.6}
+.pg.conf{background:#146c2e;color:#fff}
+.vl{border:0;background:none;color:inherit;font:inherit;font-weight:800;font-size:16px;padding:6px 2px;cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.5);text-underline-offset:4px}.vl .lp{font-size:13px;opacity:.7}
+.cta{flex-wrap:wrap}.cta>div:first-child{flex:1;min-width:0}.ced{display:flex;gap:8px;width:100%;margin-top:4px}.ced input{flex:1;min-width:0;font-size:18px;padding:9px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.95);color:#10243a}.pg.cx{background:rgba(255,255,255,.15);color:#fff}.pg:disabled{opacity:.6}
 </style>
 </head>
 <body>
@@ -673,9 +675,30 @@ function pintaResumo(o){
    +'<div><small>Já medido</small><b>'+reais(r.executado)+'</b></div><div><small>Último diário</small><b>'+ult+'</b></div></div>'
    +((r.contas||[]).length?'<div class="contas"><h4>Contas a pagar</h4>'+r.contas.map(function(c,i){
       return '<div class="cta"><div><b>'+esc(c.d)+'</b>'+(c.f?' <small>'+esc(c.f)+'</small>':'')+'<br><small>'+(c.venc?'vence '+c.venc.slice(8,10)+'/'+c.venc.slice(5,7):'sem data')+'</small></div>'
-       +'<div class="ctv"><b>'+reais(c.v)+'</b><button type="button" class="pg" data-pg="'+i+'">Paguei</button></div></div>'}).join('')+'<p class="sub2" id="pgMsg" hidden></p></div>':'');
+       +'<div class="ctv"><button type="button" class="vl" data-vl="'+i+'" aria-label="Editar valor">'+reais(c.v)+' <span class="lp">&#9998;&#xFE0E;</span></button><button type="button" class="pg" data-pg="'+i+'">Paguei</button></div>'
+       +'<div class="ced" id="ced'+i+'" hidden><input inputmode="decimal" autocomplete="off" aria-label="Novo valor"><button type="button" class="pg conf" data-sv="'+i+'">Salvar</button><button type="button" class="pg cx" data-cx="'+i+'">Cancelar</button></div></div>'}).join('')+'<p class="sub2" id="pgMsg" hidden></p></div>':'');
   el.hidden=false;
-  el.querySelectorAll('[data-pg]').forEach(function(b){b.onclick=function(){pagarConta(o,r.contas[+b.dataset.pg],b)}})}
+  el.querySelectorAll('[data-pg]').forEach(function(b){b.onclick=function(){pagarConta(o,r.contas[+b.dataset.pg],b)}});
+  el.querySelectorAll('[data-vl]').forEach(function(b){b.onclick=function(){var i=b.dataset.vl,ed=$('#ced'+i);
+    el.querySelectorAll('.ced').forEach(function(x){x.hidden=true});ed.hidden=false;var inp=ed.querySelector('input');
+    inp.value=String(r.contas[i].v.toFixed(2)).replace('.',',');inp.focus();inp.select()}});
+  el.querySelectorAll('[data-cx]').forEach(function(b){b.onclick=function(){$('#ced'+b.dataset.cx).hidden=true}});
+  el.querySelectorAll('[data-sv]').forEach(function(b){b.onclick=function(){editarValor(o,r.contas[+b.dataset.sv],$('#ced'+b.dataset.sv),b)}})}
+/* corrige o valor de uma conta "A pagar" (continua a pagar) */
+async function editarValor(o,c,ed,b){
+  var msg=$('#pgMsg'),v=valorNum(ed.querySelector('input').value);
+  if(!(v>0)){msg.hidden=false;msg.textContent='Digite um valor válido.';return}
+  if(Math.abs(v-c.v)<0.005){ed.hidden=true;return}
+  if(!navigator.onLine){msg.hidden=false;msg.textContent='Sem internet agora. Tente de novo quando tiver sinal.';return}
+  b.disabled=true;b.textContent='Salvando...';
+  try{
+    var r=await api('f_valorConta',{t:E.tok,obra:o.id,conta:{d:c.d,f:c.f,v:c.v},valor:v});
+    if(r&&r.obras){E.obras=r.obras;guarda('luc_obras',E.obras)}
+    pintaObra();var m=$('#pgMsg');if(m){m.hidden=false;m.textContent=c.d+': valor corrigido para '+reais(v)+'.'}vibra(10);
+  }catch(e){
+    if(/PIN/i.test(e.message)){pinRecusado('Este celular precisa ser cadastrado de novo. Digite o PIN.');return}
+    b.disabled=false;b.textContent='Salvar';msg.hidden=false;msg.textContent=e.semNet?'Sem conexão agora. Nada foi mudado; tente de novo.':String(e.message||e)}
+}
 /* "Paguei": 1º toque pede confirmação, 2º marca como pago na planilha (precisa de internet) */
 async function pagarConta(o,c,b){
   var msg=$('#pgMsg');
