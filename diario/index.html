@@ -203,6 +203,59 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
 .pg.conf{background:#146c2e;color:#fff}
 .vl{border:0;background:none;color:inherit;font:inherit;font-weight:800;font-size:16px;padding:6px 2px;cursor:pointer;text-decoration:underline dotted rgba(255,255,255,.5);text-underline-offset:4px}.vl .lp{font-size:13px;opacity:.7}
 .cta{flex-wrap:wrap}.cta>div:first-child{flex:1;min-width:0}.ced{display:flex;gap:8px;width:100%;margin-top:4px}.ced input{flex:1;min-width:0;font-size:18px;padding:9px 10px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.95);color:#10243a}.pg.cx{background:rgba(255,255,255,.15);color:#fff}.pg:disabled{opacity:.6}
+
+/* ===== Sem cara de IA (regras do Unslop aplicadas ao app de obra) =====
+   Inspiração: o RDO em papel. Campos numerados, linhas de caderno, cantos retos,
+   sem cartões flutuando com sombra, sem degradê, sem rótulo em CAIXA ALTA espaçada,
+   sem grade de "cards de número". Dinheiro em colunas alinhadas, como extrato. */
+:root{--r:6px;--rule:#c9d6e3}
+@media (prefers-color-scheme:dark){:root{--rule:#2a4262}}
+.card,.tempo,.res,.apg,.aviso,.foto,.op,input[type=text],textarea,select,input[type=date],.cl,.eq .f,.addbtn,.msg{border-radius:var(--r)}
+.card,.tempo{box-shadow:none;border:1px solid var(--rule);background:var(--card)}
+.wrap{counter-reset:sec}
+#vDia>.card,#vGasto .card{counter-increment:sec}
+.card h3{font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:750;padding-bottom:8px;margin-bottom:12px;border-bottom:1px solid var(--rule);justify-content:flex-start}
+#vDia>.card h3::before,#vGasto .card h3::before{content:counter(sec);display:inline-grid;place-items:center;min-width:22px;height:22px;margin-right:8px;border:1.5px solid var(--ink);border-radius:3px;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums}
+.card h3 small{margin-left:auto}
+#vDia>.sub,#vGasto>.sub{display:none}
+h1{font-size:21px;margin:2px 0 12px;letter-spacing:0}
+/* abas como divisórias de pasta, não pílula */
+.abas{background:none;border-radius:0;padding:0;gap:0;border-bottom:2px solid var(--rule);margin:0 0 16px}
+.abas button{border-radius:0;color:var(--muted);padding:12px 6px 10px;margin-bottom:-2px;border-bottom:3px solid transparent}
+.abas button.on{background:none;box-shadow:none;color:var(--ink);border-bottom-color:var(--amber)}
+/* avisos: uma linha com marca lateral, sem caixinha colorida */
+.aviso{background:none!important;border:0!important;border-left:4px solid #3d6fa8!important;border-radius:0;padding:4px 0 4px 10px;margin-bottom:8px;font-size:14px;color:var(--ink)!important}
+.aviso.venc{border-left-color:#d08a00!important}
+.aviso b{display:inline;margin-right:4px}
+/* botão de envio encaixado no rodapé, sem brilho laranja */
+.envio{background:var(--bg);border-top:1px solid var(--rule);padding-top:10px}
+.enviar{border-radius:var(--r);box-shadow:none;font-size:17px;padding:15px 16px}
+/* aba Obra: folha de acompanhamento, não painel escuro */
+.res{background:var(--card);color:var(--ink);border:1px solid var(--rule);box-shadow:none}
+.res h3{color:var(--muted);text-transform:none;letter-spacing:0;font-size:13px;font-weight:600}
+.res .big{font-size:34px;font-variant-numeric:tabular-nums}
+.res .trk{height:12px;border-radius:2px;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),var(--rule) calc(10% - 1px) 10%),#eef3f8;border:1px solid var(--rule)}
+.res .trk i{border-radius:0;background:#2f8f57}
+.res .trk s{width:3px;background:var(--amber);top:-5px;bottom:-5px}
+.res .sub2{color:var(--muted)}
+.res .grid{display:block;margin-top:14px;border-top:1px solid var(--rule)}
+.res .grid div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;background:none;border-radius:0;padding:9px 0;border-bottom:1px dashed var(--rule)}
+.res .grid small{display:inline;font-size:14px;color:var(--muted)}
+.res .grid b{font-size:16px}
+.res .grid .am b{color:#b36b00}
+.contas{border-top:2px solid var(--ink);margin-top:16px;padding-top:8px}
+.contas h4{font-size:15px}
+.cta{border-bottom:1px dashed var(--rule)}
+.vl{color:var(--ink);text-decoration-color:var(--muted);font-variant-numeric:tabular-nums}
+.pg{border-radius:var(--r);background:none;border:1.5px solid #2f8f57;color:#1f6e40}
+.pg.conf{background:#2f8f57;color:#fff;border-color:#2f8f57}
+.pg.cx{background:none;border-color:var(--rule);color:var(--muted)}
+.ced input{border:1px solid var(--rule);border-radius:var(--r)}
+.res .sub2#pgMsg{color:var(--ink)}
+@media (prefers-color-scheme:dark){.res .trk{background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),var(--rule) calc(10% - 1px) 10%),#16283f}.res .grid .am b{color:#ffc768}.pg{color:#7fd6a2;border-color:#4fb37c}}
+.tdia{border-radius:3px}
+@keyframes entraE{from{transform:translateX(28px);opacity:.4}to{transform:none;opacity:1}}@keyframes entraD{from{transform:translateX(-28px);opacity:.4}to{transform:none;opacity:1}}
+.entraE{animation:entraE .18s ease-out}.entraD{animation:entraD .18s ease-out}
 </style>
 </head>
 <body>
@@ -223,7 +276,7 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
     <button class="obra-btn" id="obraBtn" type="button"><span id="obraNome">Escolha a obra</span>
       <svg width="12" height="8" viewBox="0 0 12 8" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 1.5l5 5 5-5"/></svg></button>
   </div>
-  <div class="offline" id="off" hidden>Sem internet. O que você escrever fica guardado no aparelho e sobe sozinho depois.</div>
+  <div class="offline" id="off" hidden>Sem internet. O que você escrever fica guardado no aparelho e é enviado quando o sinal voltar.</div>
   <button class="pend" id="pend" type="button" hidden></button>
   <div class="instala" id="instala" hidden><b>Instale como app</b><span>No Safari, toque em <b>Compartilhar</b> <span class="ic">&#x2B06;&#xFE0E;</span> e depois em <b>Adicionar à Tela de Início</b>.</span><button type="button" id="fechaInst" aria-label="Fechar">&times;</button></div>
 
@@ -237,7 +290,7 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
     </div>
     <div id="vDia">
     <h1>Novo Diário de Obra</h1>
-    <p class="sub">O que você enviar aqui chega sozinho no programa do computador.</p>
+    <p class="sub">Os dias enviados aparecem no programa do computador.</p>
     <div class="msg" id="erro" hidden role="alert"></div>
 
     <div class="card">
@@ -306,7 +359,7 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
     </div>
     <div id="vGasto" hidden>
       <h1>Novo Gasto</h1>
-      <p class="sub">O gasto chega sozinho na lista de custos da obra, no programa do computador.</p>
+      <p class="sub">O gasto entra na lista de custos da obra, no programa do computador.</p>
       <div class="msg" id="gErro" hidden role="alert"></div>
       <div class="card">
         <label class="campo"><span>Valor (R$)</span><input type="text" id="gValor" inputmode="decimal" placeholder="0,00" autocomplete="off"></label>
@@ -498,7 +551,7 @@ async function buscaClima(){
     var cod=j.daily.weathercode[0],mm=j.daily.precipitation_sum[0];if(cod==null)return;
     E.clima=classifica(cod,mm);E.climaOk=true;pintaClima();
     var a=$('#climaAuto');a.textContent='Preenchido pela previsão de Lambari'+(mm?' ('+(+mm).toFixed(1).replace('.',',')+' mm de chuva)':'')+'. Toque para trocar.';a.hidden=false;
-  }catch(e){if(alvo===E.data&&!E.climaManual){var a=$('#climaAuto');a.textContent='Sem sinal: o clima será preenchido sozinho quando o programa conectar. Se preferir, toque no tempo.';a.hidden=false}}
+  }catch(e){if(alvo===E.data&&!E.climaManual){var a=$('#climaAuto');a.textContent='Sem sinal: o clima é preenchido quando a internet voltar. Se preferir, toque no tempo.';a.hidden=false}}
 }
 
 function pintaEquipe(){
@@ -759,7 +812,7 @@ $('#data').onchange=function(){if(this.value)mudaData(this.value)};
 ['#servicos','#ocorr'].forEach(function(s){$(s).addEventListener('input',function(){cresce(this)})});
 
 /* envio */
-/* envio: primeiro guarda no aparelho, depois sobe. Sem sinal, fica na fila e sobe sozinho depois. */
+/* envio: primeiro guarda no aparelho, depois sobe. Sem sinal, fica na fila e é enviado quando a internet voltar. */
 $('#enviar').onclick=async function(){
   if(E.enviando)return;
   erro('');
@@ -837,13 +890,28 @@ function pintaGasto(){
 function aba(g){
   var n=g===true?'gasto':g===false?'dia':g;
   $('#vDia').hidden=n!=='dia';$('#vGasto').hidden=n!=='gasto';$('#vObra').hidden=n!=='obra';
-  $('#enviar').hidden=n!=='dia';$('#gEnviar').hidden=n!=='gasto';
+  $('#enviar').hidden=n!=='dia';$('#gEnviar').hidden=n!=='gasto';document.querySelector('.envio').hidden=n==='obra';
   $('#aDia').classList.toggle('on',n==='dia');$('#aGasto').classList.toggle('on',n==='gasto');$('#aObra').classList.toggle('on',n==='obra');
   if(n==='gasto')pintaGasto();
   if(n==='obra'){var o=E.obras.filter(function(x){return x.id===E.obra})[0];pintaResumo(o);$('#semResumo').hidden=!$('#resumoObra').hidden}
   window.scrollTo(0,0);
 }
 $('#aDia').onclick=function(){aba('dia')};$('#aGasto').onclick=function(){aba('gasto')};$('#aObra').onclick=function(){aba('obra')};
+/* arrastar o dedo para o lado troca de aba: para a esquerda vai Diário > Gasto > Obra, para a direita volta */
+(function(){
+  var ORD=['dia','gasto','obra'],x0=null,y0=0,t0=0;
+  function atual(){return !$('#vGasto').hidden?'gasto':!$('#vObra').hidden?'obra':'dia'}
+  function bloqueia(el){return !el||el.closest('input,textarea,select,.tgrid,.folha,.ced,#pin')||!$('#ok').hidden||document.querySelector('.folha:not([hidden])')}
+  var w=document.querySelector('.wrap');
+  w.addEventListener('touchstart',function(e){if(e.touches.length!==1||bloqueia(e.target)){x0=null;return}x0=e.touches[0].clientX;y0=e.touches[0].clientY;t0=Date.now()},{passive:true});
+  w.addEventListener('touchend',function(e){
+    if(x0===null)return;var t=e.changedTouches[0],dx=t.clientX-x0,dy=t.clientY-y0;x0=null;
+    if(Math.abs(dx)<70||Math.abs(dx)<Math.abs(dy)*1.8||Date.now()-t0>700)return;
+    var i=ORD.indexOf(atual())+(dx<0?1:-1);if(i<0||i>=ORD.length)return;
+    aba(ORD[i]);vibra(8);
+    var v=$('#v'+{dia:'Dia',gasto:'Gasto',obra:'Obra'}[ORD[i]]);v.classList.remove('entraE','entraD');void v.offsetWidth;v.classList.add(dx<0?'entraE':'entraD');
+  },{passive:true});
+})();
 function gErro(t){var m=$('#gErro');if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false;vibra([30,40,30]);window.scrollTo({top:0,behavior:'smooth'})}
 function valorNum(t){t=String(t).replace(/[^0-9,.\-]/g,'');if(t.indexOf(',')>=0)t=t.replace(/\./g,'').replace(',','.');else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,'');return parseFloat(t)}
 /* valor estilo caixa eletrônico: os números entram da direita (20050 vira 200,50); a vírgula e o ponto são automáticos */
