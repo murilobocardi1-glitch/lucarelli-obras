@@ -139,7 +139,7 @@ input:focus,textarea:focus{outline:2px solid var(--blue2);outline-offset:1px;bac
 .op.on{border-color:var(--blue2);background:var(--blue-lt)}
 
 /* abas e gasto */
-.abas{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--blue-lt);border-radius:14px;padding:4px;margin:2px 0 14px}
+.abas{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;background:var(--blue-lt);border-radius:14px;padding:4px;margin:2px 0 14px}
 .abas button{border:0;background:none;border-radius:11px;padding:11px 8px;font-weight:700;font-size:15px;color:var(--blue2);cursor:pointer}
 .abas button.on{background:var(--card);color:var(--blue);box-shadow:var(--shadow)}
 .campo{display:block;margin-bottom:12px}
@@ -197,6 +197,10 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
 .aviso b{display:block}
 .semc2{margin-top:8px;padding:12px;border:2px solid #e8a33d;border-radius:14px;background:rgba(232,163,61,.08)}
 .chk{display:flex;gap:10px;align-items:flex-start;margin:6px 0 10px;font-size:14px}.chk input{width:22px;height:22px;flex:none;margin-top:1px}
+.contas{margin-top:14px;border-top:1px solid rgba(127,127,127,.25);padding-top:10px}.contas h4{margin:0 0 6px;font-size:15px}
+.cta{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(127,127,127,.15)}.cta small{opacity:.75;font-size:12.5px}
+.ctv{display:flex;align-items:center;gap:10px;flex:none}.pg{border:0;border-radius:10px;padding:9px 12px;font-weight:700;font-size:14px;background:#e7f6ec;color:#146c2e;cursor:pointer;min-height:40px}
+.pg.conf{background:#146c2e;color:#fff}.pg:disabled{opacity:.6}
 </style>
 </head>
 <body>
@@ -223,9 +227,12 @@ html[data-tema=dark] .tdia{background:#1c2f47}html[data-tema=dark] .tdia.media{b
 
   <div class="wrap">
     <div id="avisos"></div>
+    <div class="abas"><button type="button" id="aDia" class="on">Diário</button><button type="button" id="aGasto">Gasto</button><button type="button" id="aObra">Obra</button></div>
+    <div id="vObra" hidden>
     <div class="res" id="resumoObra" hidden></div>
+    <p class="sub" id="semResumo" hidden>Esta obra ainda não tem andamento calculado. Ele aparece depois que o programa do computador atualizar.</p>
     <div class="tempo" id="tempoBox"><h3>Previsão do tempo <small>Lambari · % de chuva</small></h3><div class="tgrid"><p class="tsem">Buscando previsão...</p></div></div>
-    <div class="abas"><button type="button" id="aDia" class="on">Diário</button><button type="button" id="aGasto">Gasto</button></div>
+    </div>
     <div id="vDia">
     <h1>Novo Diário de Obra</h1>
     <p class="sub">O que você enviar aqui chega sozinho no programa do computador.</p>
@@ -663,11 +670,32 @@ function pintaResumo(o){
    +'<div class="big">'+nb(av)+'%</div><div class="trk"><i style="width:'+av+'%"></i>'+(pz==null?'':'<s style="left:'+pz+'%"></s>')+'</div>'
    +'<div class="sub2">'+(pz==null?'Avanço medido da obra':'Pelo prazo deveria estar em '+nb(pz)+'% (marca laranja)')+'</div>'
    +'<div class="grid"><div><small>Já pago</small><b>'+(r.gasto==null?'-':reais(r.gasto))+'</b></div><div class="am"><small>A pagar</small><b>'+reais(r.aPagar)+'</b></div>'
-   +'<div><small>Já medido</small><b>'+reais(r.executado)+'</b></div><div><small>Último diário</small><b>'+ult+'</b></div></div>';
-  el.hidden=false}
+   +'<div><small>Já medido</small><b>'+reais(r.executado)+'</b></div><div><small>Último diário</small><b>'+ult+'</b></div></div>'
+   +((r.contas||[]).length?'<div class="contas"><h4>Contas a pagar</h4>'+r.contas.map(function(c,i){
+      return '<div class="cta"><div><b>'+esc(c.d)+'</b>'+(c.f?' <small>'+esc(c.f)+'</small>':'')+'<br><small>'+(c.venc?'vence '+c.venc.slice(8,10)+'/'+c.venc.slice(5,7):'sem data')+'</small></div>'
+       +'<div class="ctv"><b>'+reais(c.v)+'</b><button type="button" class="pg" data-pg="'+i+'">Paguei</button></div></div>'}).join('')+'<p class="sub2" id="pgMsg" hidden></p></div>':'');
+  el.hidden=false;
+  el.querySelectorAll('[data-pg]').forEach(function(b){b.onclick=function(){pagarConta(o,r.contas[+b.dataset.pg],b)}})}
+/* "Paguei": 1º toque pede confirmação, 2º marca como pago na planilha (precisa de internet) */
+async function pagarConta(o,c,b){
+  var msg=$('#pgMsg');
+  if(!b.dataset.ok){el2(b);b.dataset.ok='1';b.textContent='Confirmar?';b.classList.add('conf');vibra(10);
+    setTimeout(function(){if(b.isConnected&&b.dataset.ok==='1'){delete b.dataset.ok;b.textContent='Paguei';b.classList.remove('conf')}},6000);return}
+  if(!navigator.onLine){msg.hidden=false;msg.textContent='Sem internet agora. Tente de novo quando tiver sinal.';return}
+  b.dataset.ok='2';b.disabled=true;b.textContent='Marcando...';
+  try{
+    var r=await api('f_pago',{t:E.tok,obra:o.id,conta:{d:c.d,f:c.f,v:c.v}});
+    if(r&&r.obras){E.obras=r.obras;guarda('luc_obras',E.obras)}
+    pintaObra();var m=$('#pgMsg');if(m){m.hidden=false;m.textContent=c.d+' marcado como pago hoje.'}vibra([10,40,10]);
+  }catch(e){
+    if(/PIN/i.test(e.message)){pinRecusado('Este celular precisa ser cadastrado de novo. Digite o PIN.');return}
+    b.disabled=false;delete b.dataset.ok;b.textContent='Paguei';b.classList.remove('conf');
+    msg.hidden=false;msg.textContent=e.semNet?'Sem conexão agora. Nada foi marcado; tente de novo.':String(e.message||e)}
+}
+function el2(b){document.querySelectorAll('.pg.conf').forEach(function(x){if(x!==b){delete x.dataset.ok;x.textContent='Paguei';x.classList.remove('conf')}})}
 function pintaObra(){tempoPreenche(document.getElementById('tempoBox'));(function(){var o=E.obras.filter(function(x){return x.id===E.obra})[0];pintaAvisos(o,null);tempoBusca().then(function(d){pintaAvisos(o,d)}).catch(function(){})})();
   var o=E.obras.filter(function(x){return x.id===E.obra})[0];
-  $('#obraNome').textContent=o?o.nome:'Escolha a obra';pintaResumo(o);
+  $('#obraNome').textContent=o?o.nome:'Escolha a obra';pintaResumo(o);$('#semResumo').hidden=!$('#resumoObra').hidden;
   var ult=le('luc_ult_'+E.obra,null);
   $('#repEq').hidden=!(ult&&ult.equipe);$('#repServ').hidden=!(ult&&ult.servicos);
 }
@@ -782,13 +810,17 @@ function pintaGasto(){
   if(etAntes&&et.indexOf(etAntes)>=0)$('#gEt').value=etAntes;
   if(!$('#gData').value)$('#gData').value=iso(new Date());
 }
+/* abas: Diário, Gasto e Obra (andamento, contas a pagar e previsão do tempo) */
 function aba(g){
-  $('#vDia').hidden=g;$('#vGasto').hidden=!g;
-  $('#enviar').hidden=g;$('#gEnviar').hidden=!g;
-  $('#aDia').classList.toggle('on',!g);$('#aGasto').classList.toggle('on',g);
-  if(g)pintaGasto();window.scrollTo(0,0);
+  var n=g===true?'gasto':g===false?'dia':g;
+  $('#vDia').hidden=n!=='dia';$('#vGasto').hidden=n!=='gasto';$('#vObra').hidden=n!=='obra';
+  $('#enviar').hidden=n!=='dia';$('#gEnviar').hidden=n!=='gasto';
+  $('#aDia').classList.toggle('on',n==='dia');$('#aGasto').classList.toggle('on',n==='gasto');$('#aObra').classList.toggle('on',n==='obra');
+  if(n==='gasto')pintaGasto();
+  if(n==='obra'){var o=E.obras.filter(function(x){return x.id===E.obra})[0];pintaResumo(o);$('#semResumo').hidden=!$('#resumoObra').hidden}
+  window.scrollTo(0,0);
 }
-$('#aDia').onclick=function(){aba(false)};$('#aGasto').onclick=function(){aba(true)};
+$('#aDia').onclick=function(){aba('dia')};$('#aGasto').onclick=function(){aba('gasto')};$('#aObra').onclick=function(){aba('obra')};
 function gErro(t){var m=$('#gErro');if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false;vibra([30,40,30]);window.scrollTo({top:0,behavior:'smooth'})}
 function valorNum(t){t=String(t).replace(/[^0-9,.\-]/g,'');if(t.indexOf(',')>=0)t=t.replace(/\./g,'').replace(',','.');else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,'');return parseFloat(t)}
 /* valor estilo caixa eletrônico: os números entram da direita (20050 vira 200,50); a vírgula e o ponto são automáticos */
