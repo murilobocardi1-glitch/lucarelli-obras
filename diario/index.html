@@ -964,7 +964,11 @@ function atualizaObras(){
   if(!E.tok||Date.now()-ultResumo<30000)return;ultResumo=Date.now();
   comTentativas('f_entrar',{t:E.tok},1).then(function(r){if(r&&r.obras){E.obras=r.obras;guarda('luc_obras',E.obras);try{pintaObra()}catch(x){}}}).catch(function(){});
 }
-document.addEventListener('visibilitychange',function(){if(!document.hidden){tentaFila();atualizaObras()}});
+document.addEventListener('visibilitychange',function(){if(!document.hidden){zeraSeSaiu();tentaFila();atualizaObras()}else E.saiuEm=Date.now()});
+/* saiu do app (fechou ou foi para outro app) por mais de 2 minutos: o diário não enviado zera. Exceção: foi tirar foto. */
+function zeraSeSaiu(){var t=E.saiuEm;E.saiuEm=0;if(!t||Date.now()-t<120000||le('luc_cam',0))return;
+  apaga('luc_rasc');rfLimpa();limpaFormulario();E.fotos.forEach(function(f){if(f.url)URL.revokeObjectURL(f.url)});E.fotos=[];E.diaId='';
+  E.data=iso(new Date());E.climaManual=false;pintaData();pintaFotos();buscaClima()}
 setInterval(tentaFila,25000);
 function sucesso(dia,n,enviado){
   var data=dia.data.split('-').reverse().join('/');
