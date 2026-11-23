@@ -881,7 +881,7 @@ function pintaGasto(){
   var o=E.obras.filter(function(x){return x.id===E.obra})[0]||{};
   opcoes($('#gCat'),CATS);
   var un=o.unidades||[],it=o.itens||[],et=o.etapas||[],etAntes=$('#gEt').value;
-  $('#gUnW').hidden=!un.length;$('#gItW').hidden=!it.length;$('#gEtW').hidden=!et.length;
+  $('#gUnW').hidden=!un.length;$('#gItW').hidden=!it.length;$('#gEtW').hidden=true; /* etapa no gasto saiu do celular (23/11/2026) */
   opcoes($('#gUn'),un,'Geral');opcoes($('#gIt'),it,'Nenhum');opcoes($('#gEt'),et,'Não sei / geral');
   if(etAntes&&et.indexOf(etAntes)>=0)$('#gEt').value=etAntes;
   if(!$('#gData').value)$('#gData').value=iso(new Date());
