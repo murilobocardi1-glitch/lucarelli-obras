@@ -642,10 +642,10 @@ async function addArquivos(lista){
       pintaFotos()}}
   await Promise.all([trabalha(),trabalha()]);
 }
-$('#bCam').onclick=function(){salvaRascunhoJa();$('#arqCam').click()};
-$('#bGal').onclick=function(){$('#arqGal').click()};
-$('#arqCam').onchange=function(){var l=this.files;addArquivos(l);this.value=''};
-$('#arqGal').onchange=function(){var l=this.files;addArquivos(l);this.value=''};
+$('#bCam').onclick=function(){guarda('luc_cam',Date.now());salvaRascunhoJa();$('#arqCam').click()};
+$('#bGal').onclick=function(){guarda('luc_cam',Date.now());salvaRascunhoJa();$('#arqGal').click()};
+$('#arqCam').onchange=function(){apaga('luc_cam');var l=this.files;addArquivos(l);this.value=''};
+$('#arqGal').onchange=function(){apaga('luc_cam');var l=this.files;addArquivos(l);this.value=''};
 
 function erro(t){var m=$('#erro');if(!t){m.hidden=true;return}m.textContent=t;m.hidden=false;vibra([30,40,30]);window.scrollTo({top:0,behavior:'smooth'})}
 
@@ -993,8 +993,9 @@ function abrirApp(){
   if(!standalone&&/iPhone|iPad/.test(navigator.userAgent)&&!le('luc_inst_fechado',false))$('#instala').hidden=false;
   $('#off').hidden=navigator.onLine;
   var r=le('luc_rasc',null),zerou=false;
-  /* fechou o app: começa zerado. Só guarda o rascunho por 10 minutos (no iPhone o app pode reabrir sozinho depois da câmera) */
-  if(r&&(!r.t||Date.now()-r.t>600000)){apaga('luc_rasc');rfLimpa();r={obra:r.obra};zerou=true}
+  /* fechou o app: começa zerado. Única exceção: o iPhone fechou o app ao abrir a câmera/galeria (até 5 min depois) */
+  var cam=le('luc_cam',0);apaga('luc_cam');
+  if(r&&!(cam&&Date.now()-cam<300000)){apaga('luc_rasc');rfLimpa();r={obra:r.obra};zerou=true}
   E.obra=(r&&r.obra)||le('luc_obra','');
   if(E.obras.length===1)E.obra=E.obras[0].id;
   if(!E.obras.some(function(o){return o.id===E.obra}))E.obra=E.obras.length===1?E.obras[0].id:'';
