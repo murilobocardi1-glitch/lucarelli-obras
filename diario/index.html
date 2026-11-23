@@ -653,7 +653,7 @@ function erro(t){var m=$('#erro');if(!t){m.hidden=true;return}m.textContent=t;m.
 var tRasc;
 function salvaRascunhoJa(){
   clearTimeout(tRasc);
-  guarda('luc_rasc',{obra:E.obra,data:E.data,clima:E.clima,climaManual:E.climaManual,qtd:E.qtd,outra:$('#eqOutra').value,servicos:$('#servicos').value,ocorr:$('#ocorr').value,diaId:E.diaId});
+  guarda('luc_rasc',{t:Date.now(),obra:E.obra,data:E.data,clima:E.clima,climaManual:E.climaManual,qtd:E.qtd,outra:$('#eqOutra').value,servicos:$('#servicos').value,ocorr:$('#ocorr').value,diaId:E.diaId});
   $('#rasc').textContent='Rascunho guardado neste aparelho'+(E.fotos.length?' (com '+E.fotos.length+' foto'+(E.fotos.length>1?'s':'')+')':'')}
 function salvaRascunho(){clearTimeout(tRasc);tRasc=setTimeout(salvaRascunhoJa,300)}
 /* ao abrir: devolve as fotos do rascunho que estavam gravadas no aparelho */
@@ -992,7 +992,9 @@ function abrirApp(){
   var standalone=window.navigator.standalone||matchMedia('(display-mode: standalone)').matches;
   if(!standalone&&/iPhone|iPad/.test(navigator.userAgent)&&!le('luc_inst_fechado',false))$('#instala').hidden=false;
   $('#off').hidden=navigator.onLine;
-  var r=le('luc_rasc',null);
+  var r=le('luc_rasc',null),zerou=false;
+  /* fechou o app: começa zerado. Só guarda o rascunho por 10 minutos (no iPhone o app pode reabrir sozinho depois da câmera) */
+  if(r&&(!r.t||Date.now()-r.t>600000)){apaga('luc_rasc');rfLimpa();r={obra:r.obra};zerou=true}
   E.obra=(r&&r.obra)||le('luc_obra','');
   if(E.obras.length===1)E.obra=E.obras[0].id;
   if(!E.obras.some(function(o){return o.id===E.obra}))E.obra=E.obras.length===1?E.obras[0].id:'';
@@ -1003,7 +1005,7 @@ function abrirApp(){
   E.clima=(r&&r.clima)||'Sol';E.climaManual=!!(r&&r.climaManual);
   pintaData();pintaClima();E.qtd=(r&&r.qtd)||{};pintaEquipe();
   $('#eqOutra').value=(r&&r.outra)||'';$('#servicos').value=(r&&r.servicos)||'';$('#ocorr').value=(r&&r.ocorr)||'';
-  cresce($('#servicos'));cresce($('#ocorr'));pintaObra();pintaFotos();recuperaFotos();
+  cresce($('#servicos'));cresce($('#ocorr'));pintaObra();pintaFotos();if(!zerou)recuperaFotos();
   if(!E.climaManual)buscaClima();
   if(!E.obra&&E.obras.length>1)setTimeout(abreFolha,350);
 }
