@@ -698,7 +698,7 @@ function pintaAvisos(o,prev){
   var el=$('#avisos');if(!el)return;var h='',r=o&&o.resumo,hj=new Date();hj.setHours(12,0,0,0);
   var iso=function(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')};
   var am=new Date(hj.getTime()+86400000),H=iso(hj),A=iso(am);
-  if(r&&r.contas){
+  if(false&&r&&r.contas){ /* contas a pagar saíram do celular (23/11/2026) */
     var vencidas=r.contas.filter(function(c){return c.venc&&c.venc<H}),hoje=r.contas.filter(function(c){return c.venc===H}),amanha=r.contas.filter(function(c){return c.venc===A});
     var lst=function(a){return a.map(function(c){return esc(c.d)+(c.f?' ('+esc(c.f)+')':'')+' '+reais(c.v)}).join('; ')};
     if(vencidas.length)h+='<div class="aviso venc">💰<div><b>Conta vencida</b>'+lst(vencidas)+'</div></div>';
@@ -726,7 +726,7 @@ function pintaResumo(o){
    +'<div class="sub2">'+(pz==null?'Avanço medido da obra':'Pelo prazo deveria estar em '+nb(pz)+'% (marca laranja)')+'</div>'
    +'<div class="grid"><div><small>Já pago</small><b>'+(r.gasto==null?'-':reais(r.gasto))+'</b></div><div class="am"><small>A pagar</small><b>'+reais(r.aPagar)+'</b></div>'
    +'<div><small>Já medido</small><b>'+reais(r.executado)+'</b></div><div><small>Último diário</small><b>'+ult+'</b></div></div>'
-   +((r.contas||[]).length?'<div class="contas"><h4>Contas a pagar</h4>'+r.contas.map(function(c,i){
+   +(false&&(r.contas||[]).length?'<div class="contas"><h4>Contas a pagar</h4>'+r.contas.map(function(c,i){
       return '<div class="cta"><div><b>'+esc(c.d)+'</b>'+(c.f?' <small>'+esc(c.f)+'</small>':'')+'<br><small>'+(c.venc?'vence '+c.venc.slice(8,10)+'/'+c.venc.slice(5,7):'sem data')+'</small></div>'
        +'<div class="ctv"><button type="button" class="vl" data-vl="'+i+'" aria-label="Editar valor">'+reais(c.v)+' <span class="lp">&#9998;&#xFE0E;</span></button><button type="button" class="pg" data-pg="'+i+'">Paguei</button></div>'
        +'<div class="ced" id="ced'+i+'" hidden><input inputmode="decimal" autocomplete="off" aria-label="Novo valor"><button type="button" class="pg conf" data-sv="'+i+'">Salvar</button><button type="button" class="pg cx" data-cx="'+i+'">Cancelar</button></div></div>'}).join('')+'<p class="sub2" id="pgMsg" hidden></p></div>':'');
